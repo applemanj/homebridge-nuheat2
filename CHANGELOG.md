@@ -1,6 +1,20 @@
 # Changelog
 All notable changes to this project should be documented in this file
 
+## [Unreleased]
+
+## [1.2.4-beta.0] - 2026-04-11
+### Changed
+ - Delay platform startup until Homebridge finishes restoring cached accessories
+ - Allow overriding Nuheat OAuth client settings through config or environment variables
+ - Improve SignalR reconnection handling and token refresh behavior
+ - Add basic regression tests and modernize package metadata for Homebridge 1.8+ and 2.0 betas
+
+### Fixed
+ - Correct manual-mode thermostat mapping so HomeKit no longer snaps back to off
+ - Fix thermostat online-state handling so status updates no longer rely on an assignment bug
+ - Pin transitive websocket and cookie dependencies away from known vulnerable versions
+
 ## [1.2.3] - 2024-11-04
 ### Fixed
  - Bug when using away mode switches

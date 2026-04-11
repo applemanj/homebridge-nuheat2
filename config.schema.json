@@ -22,6 +22,22 @@
         "type": "string",
         "required": true
       },
+      "clientId": {
+        "title": "Nuheat Client ID",
+        "type": "string",
+        "description": "Optional advanced override. Leave blank to use the built-in default client ID."
+      },
+      "clientSecret": {
+        "title": "Nuheat Client Secret",
+        "type": "string",
+        "description": "Optional advanced override. Leave blank to use the built-in default client secret."
+      },
+      "redirectUri": {
+        "title": "Nuheat Redirect URI",
+        "type": "string",
+        "description": "Optional advanced override for OAuth redirect URI.",
+        "placeholder": "http://localhost"
+      },
       "devices": {
         "title": "Devices",
         "type": "array",

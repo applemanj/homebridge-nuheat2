@@ -8,6 +8,8 @@ This is a plugin for NuHeat Signature Floor Heat Thermostats. The goal is to aut
 * Auto detection and configuration of all thermostats
 * Auto detection and configuration of away mode switches for groups
 * Customized hold lengths
+* OAuth credential overrides for future-proof Nuheat API access
+* Compatibility-focused startup flow for current Homebridge 1.x and 2.0 betas
 
 ## Installation
 
@@ -19,6 +21,8 @@ Install this plugin using
 ```
 npm install -g homebridge-nuheat
 ```
+
+For Homebridge 2.0 beta, use Node 22 or 24 to match the current Homebridge beta engine requirements.
 
 ## Configuration
 Most people will use `Config-UI` to customize the plugin, but here is an example config
@@ -50,6 +54,13 @@ Most people will use `Config-UI` to customize the plugin, but here is an example
 - `holdLength` This is how long a change, made via HomeKit, will be in effect. Integer value representing minutes between 0 and 1440. When set to 0, the setpoint change will only be in effect until the next scheduled event. When set to 1440, the setpoint change is a permenant hold ***(default)***. Anything else , the setpoing change will last for X minutes.
 - `refresh` How often the data is refreshed from the MyNuHeat website, in seconds.  Defaults to 60
 - `debug` will return lots details in the Homebridge logs
+- `clientId` Optional advanced override for the Nuheat OAuth client ID
+- `clientSecret` Optional advanced override for the Nuheat OAuth client secret
+- `redirectUri` Optional advanced override for the Nuheat OAuth redirect URI. Defaults to `http://localhost`
+
+## Nuheat API Access
+Nuheat's public API docs state that third-party developers should request their own API access and client credentials.
+This fork still supports the legacy built-in client settings as a fallback, but using your own `clientId` and `clientSecret` is the recommended path for long-term stability.
 
 
 ## Roadmap

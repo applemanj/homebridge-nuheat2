@@ -1,20 +1,27 @@
 {
   "name": "homebridge-nuheat",
-  "version": "1.2.3",
+  "version": "1.2.4-beta.0",
   "description": "Homebridge Platform for NuHeat Signature Thermostats",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --test"
   },
   "keywords": [
     "homebridge-plugin",
-    "nuheat"
+    "homebridge",
+    "homekit",
+    "nuheat",
+    "thermostat",
+    "floor-heating"
   ],
   "repository": {
     "type": "git",
-    "url": "git://github.com/senorshaun/homebridge-nuheat.git"
+    "url": "git://github.com/applemanj/homebridge-nuheat2.git"
   },
-  "homepage": "https://github.com/senorshaun/homebridge-nuheat#readme",
+  "homepage": "https://github.com/applemanj/homebridge-nuheat2#readme",
+  "bugs": {
+    "url": "https://github.com/applemanj/homebridge-nuheat2/issues"
+  },
   "author": "SenorShaun",
   "license": "MIT",
   "dependencies": {
@@ -23,8 +30,22 @@
     "node-html-parser": "^5.2.0",
     "@microsoft/signalr": "^7.0.0"
   },
+  "overrides": {
+    "ws": "^7.5.10",
+    "tough-cookie": "^4.1.3"
+  },
+  "peerDependencies": {
+    "homebridge": "^1.8.0 || ^2.0.0-beta.0"
+  },
   "engines": {
-    "node": ">=14.0.0",
-    "homebridge": ">=1.3.0"
-  }
+    "node": "^18.20.4 || ^20.18.0 || ^22.0.0 || ^24.0.0",
+    "homebridge": "^1.8.0 || ^2.0.0-beta.0"
+  },
+  "files": [
+    "index.js",
+    "lib",
+    "config.schema.json",
+    "README.md",
+    "CHANGELOG.md"
+  ]
 }

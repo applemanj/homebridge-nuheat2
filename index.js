@@ -5,13 +5,15 @@ let NuHeatThermostat = require('./lib/NuHeatThermostat.js');
 let NuHeatListener = require('./lib/NuHeatListener.js');
 const logger = require("./lib/logger");
 let Homebridge, PlatformAccessory, Service, Characteristic, UUIDGen;
+const PLUGIN_NAME = 'homebridge-nuheat';
+const PLATFORM_NAME = 'NuHeat';
 module.exports = function (homebridge) {
     Homebridge = homebridge;
     PlatformAccessory = homebridge.platformAccessory;
     Characteristic = homebridge.hap.Characteristic;
     Service = homebridge.hap.Service;
     UUIDGen = homebridge.hap.uuid;
-    homebridge.registerPlatform('homebridge-nuheat', 'NuHeat', NuHeatPlatform, true);
+    homebridge.registerPlatform(PLUGIN_NAME, PLATFORM_NAME, NuHeatPlatform, true);
 };
  
 class NuHeatPlatform {
@@ -33,24 +35,51 @@ class NuHeatPlatform {
         this.api = api;
         this.accessories = [];
         this.log = new logger.Logger(log, this.config.debug || false);
-        this.setupPlatform();
+        this.refreshTimer = null;
+        this.didFinishLaunching = false;
+
+        if (this.api?.on) {
+            this.api.on('didFinishLaunching', async () => {
+                this.didFinishLaunching = true;
+                await this.setupPlatform();
+            });
+            this.api.on('shutdown', () => {
+                this.teardown();
+            });
+        } else {
+            this.setupPlatform();
+        }
     }
     configureAccessory(accessory) {
         this.accessories.push({uuid: accessory.UUID, accessory: accessory});
     }
     async setupPlatform() {
+        if (this.disabled) {
+            return;
+        }
+
+        if (this.api?.on && !this.didFinishLaunching) {
+            return;
+        }
+
         this.log.info("Logging into NuHeat...");
-        this.NuHeatAPI = new NuHeatAPI(this.config.email, this.config.password, this.log);
+        this.NuHeatAPI = new NuHeatAPI(this.config.email, this.config.password, this.log, {
+            clientId: this.config.clientId,
+            clientSecret: this.config.clientSecret,
+            redirectUri: this.config.redirectUri,
+        });
         if (await this.NuHeatAPI.returnAccessToken()) {
             await this.setupGroups();
             await this.setupThermostats();
             this.cleanupRemovedAccessories();
-            setInterval(this.refreshAccessories.bind(this), (this.config.refresh || 60) * 1000);
-            this.NuHeatListener = new NuHeatListener(await this.NuHeatAPI.returnAccessToken(), this);
-            this.NuHeatListener.connect();
-            //Disconnect cleaning when homebridge is shutting down
-            process.on("SIGINT", function() {this.NuHeatListener.disconnect()}.bind(this));
-            process.on("SIGTERM", function() {this.NuHeatListener.disconnect()}.bind(this));
+            if (this.refreshTimer) {
+                clearInterval(this.refreshTimer);
+            }
+            this.refreshTimer = setInterval(this.refreshAccessories.bind(this), (this.config.refresh || 60) * 1000);
+            if (!this.NuHeatListener) {
+                this.NuHeatListener = new NuHeatListener(this.NuHeatAPI, this);
+                this.NuHeatListener.connect();
+            }
         } else {
             this.log.error("Unable to acquire an access token. We will try again later.")
             setTimeout(this.setupPlatform.bind(this), (this.config.refresh || 60) * 1000);
@@ -80,7 +109,7 @@ class NuHeatPlatform {
                                 this.log.info("Creating new away mode switch", deviceData.groupName);
                                 let accessory = new PlatformAccessory(deviceData.groupName, uuid);
                                 let deviceService = accessory.addService(Service.Switch, deviceData.groupName + " Away Mode");
-                                this.api.registerPlatformAccessories("homebridge-nuheat", "NuHeat", [accessory]);
+                                this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
                                 deviceAccessory = accessory;
                                 this.accessories.push({uuid: uuid});
                             }
@@ -116,7 +145,7 @@ class NuHeatPlatform {
                             this.log.info("Creating new thermostat for serial number: " + deviceData.serialNumber);
                             let accessory = new PlatformAccessory(deviceData.name, uuid);
                             let deviceService = accessory.addService(Service.Thermostat, deviceData.name);
-                            this.api.registerPlatformAccessories("homebridge-nuheat", "NuHeat", [accessory]);
+                            this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
                             deviceAccessory = accessory;
                             this.accessories.push({uuid: uuid});
                         }
@@ -139,7 +168,7 @@ class NuHeatPlatform {
                 } catch {
                     this.log.info("Deleting removed accessory");
                 }
-                this.api.unregisterPlatformAccessories(undefined, undefined, [thisAccessory.accessory]);
+                this.api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [thisAccessory.accessory]);
                
             }
         },this);
@@ -181,6 +210,17 @@ class NuHeatPlatform {
                 }
             }, this);
             return true;
+        }
+    }
+
+    teardown() {
+        if (this.refreshTimer) {
+            clearInterval(this.refreshTimer);
+            this.refreshTimer = null;
+        }
+        if (this.NuHeatListener) {
+            this.NuHeatListener.disconnect();
+            this.NuHeatListener = null;
         }
     }
 }
