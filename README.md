@@ -14,6 +14,7 @@ This fork focuses on modernizing the plugin for current Homebridge releases, imp
 - Supports permanent, scheduled, and timed holds
 - Uses Nuheat's OAuth-based API instead of legacy site scraping
 - Includes compatibility improvements for Homebridge 1.8+ and 2.0 betas
+- Can optionally expose a schedule switch for each thermostat
 - Allows advanced OAuth overrides for long-term API stability
 
 ## Compatibility
@@ -65,6 +66,7 @@ Most users should configure the plugin through Homebridge Config UI X, but the e
 - `devices`: Optional list of thermostats to expose
 - `serialNumber`: Thermostat serial number from MyNuheat
 - `autoPopulateAwayModeSwitches`: Automatically expose switches for all groups on the account
+- `exposeScheduleSwitches`: Optionally expose a switch per thermostat that reflects whether the thermostat is following its schedule and can be turned on to resume the schedule
 - `groups`: Optional allow-list of groups to expose as away-mode switches
 - `groupName`: Group name as shown in MyNuheat
 - `holdLength`: Hold duration in minutes
@@ -104,6 +106,7 @@ This fork still supports the legacy built-in OAuth client settings as a fallback
 - Added regression tests for the key thermostat behavior fixes
 - Updated package metadata and dependency overrides for a cleaner modern release
 - Published under the maintainer-owned package identity `homebridge-nuheat2`
+- Added Swagger-aligned account, schedule, and energy API helpers for future enhancements
 
 ## Development
 

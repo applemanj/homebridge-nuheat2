@@ -4,6 +4,19 @@ All notable changes to this project should be documented in this file
 
 ## [Unreleased]
 
+## [1.2.4-beta.1] - 2026-04-11
+
+### Added
+
+- Swagger-aligned internal model helpers for account, thermostat, schedule, group, and energy responses
+- Optional per-thermostat schedule switches that can resume schedule mode from HomeKit
+- Account, schedule, and energy log API helpers for future UI and automation features
+
+### Changed
+
+- Simplify thermostat operating-mode handling to match the documented Nuheat Swagger model
+- Refresh thermostats when Nuheat sends schedule notifications
+
 ## [1.2.4-beta.0] - 2026-04-11
 
 ### Changed

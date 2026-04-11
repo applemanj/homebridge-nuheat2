@@ -2,6 +2,7 @@
 
 let NuHeatAPI = require("./lib/NuHeatAPI.js");
 let NuHeatGroup = require("./lib/NuHeatGroup.js");
+let NuHeatScheduleSwitch = require("./lib/NuHeatScheduleSwitch.js");
 let NuHeatThermostat = require("./lib/NuHeatThermostat.js");
 let NuHeatListener = require("./lib/NuHeatListener.js");
 const logger = require("./lib/logger");
@@ -88,6 +89,7 @@ class NuHeatPlatform {
     );
 
     if (await this.NuHeatAPI.returnAccessToken()) {
+      await this.loadAccount();
       await this.setupGroups();
       await this.setupThermostats();
       this.cleanupRemovedAccessories();
@@ -270,8 +272,56 @@ class NuHeatPlatform {
         this.accessories
           .find((accessory) => accessory.uuid === uuid)
           .accessory.updateValues(deviceData);
+
+        if (this.config.exposeScheduleSwitches) {
+          this.setupScheduleSwitch(deviceData);
+        }
       }),
     );
+  }
+
+  setupScheduleSwitch(deviceData) {
+    const uuid = UUIDGen.generate(
+      deviceData.serialNumber.toString() + "-schedule",
+    );
+    let deviceAccessory = false;
+
+    if (this.accessories.find((accessory) => accessory.uuid === uuid)) {
+      deviceAccessory = this.accessories.find(
+        (accessory) => accessory.uuid === uuid,
+      ).accessory;
+    }
+
+    if (!deviceAccessory) {
+      this.log.info("Creating schedule switch for thermostat", deviceData.name);
+      const accessory = new PlatformAccessory(
+        deviceData.name + " Schedule",
+        uuid,
+      );
+      accessory.addService(Service.Switch, deviceData.name + " Schedule");
+      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [
+        accessory,
+      ]);
+      deviceAccessory = accessory;
+      this.accessories.push({ uuid });
+    }
+
+    this.accessories.find((accessory) => accessory.uuid === uuid).accessory =
+      new NuHeatScheduleSwitch(
+        this.log,
+        deviceData,
+        deviceAccessory instanceof NuHeatScheduleSwitch
+          ? deviceAccessory.accessory
+          : deviceAccessory,
+        this.NuHeatAPI,
+        Homebridge,
+      );
+    this.accessories.find(
+      (accessory) => accessory.uuid === uuid,
+    ).existsInConfig = true;
+    this.accessories
+      .find((accessory) => accessory.uuid === uuid)
+      .accessory.updateValues(deviceData);
   }
 
   cleanupRemovedAccessories() {
@@ -341,9 +391,33 @@ class NuHeatPlatform {
       if (thisAccessory) {
         thisAccessory.accessory.updateValues(deviceData);
       }
+
+      const scheduleAccessory = this.accessories.find(
+        (accessory) =>
+          accessory.uuid ===
+          UUIDGen.generate(deviceData.serialNumber.toString() + "-schedule"),
+      );
+      if (scheduleAccessory) {
+        scheduleAccessory.accessory.updateValues(deviceData);
+      }
     }, this);
 
     return true;
+  }
+
+  async loadAccount() {
+    const account = await this.NuHeatAPI.getAccount();
+    if (!account) {
+      return;
+    }
+
+    this.account = account;
+    this.log.debug(
+      "NuHeat account preferences loaded. Temperature scale: " +
+        (account.temperatureScale || "unknown") +
+        ", 12-hour clock: " +
+        String(account.use12Hour),
+    );
   }
 
   teardown() {

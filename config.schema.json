@@ -60,6 +60,11 @@
         "title": "Auto populate Away Mode switches for all available groups",
         "type": "boolean"
       },
+      "exposeScheduleSwitches": {
+        "title": "Expose per-thermostat schedule switches",
+        "type": "boolean",
+        "description": "Creates a switch for each thermostat that reflects whether its schedule is active and can be turned on to resume the configured schedule."
+      },
       "groups": {
         "title": "Groups",
         "type": "array",
