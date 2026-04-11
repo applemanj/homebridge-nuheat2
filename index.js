@@ -67,6 +67,22 @@ class NuHeatPlatform {
     this.accessories.push({ uuid: accessory.UUID, accessory });
   }
 
+  getConfiguredGroups() {
+    return (this.config.groups || []).filter(
+      (group) =>
+        group &&
+        typeof group.groupName === "string" &&
+        group.groupName.trim().length > 0,
+    );
+  }
+
+  shouldManageGroups() {
+    return (
+      this.config.autoPopulateAwayModeSwitches ||
+      this.getConfiguredGroups().length > 0
+    );
+  }
+
   async setupPlatform() {
     if (this.disabled) {
       return;
@@ -103,7 +119,11 @@ class NuHeatPlatform {
         (this.config.refresh || 60) * 1000,
       );
 
-      if (!this.NuHeatListener) {
+      if (this.config.enableNotifications === false) {
+        this.log.info(
+          "NuHeat notifications are disabled. Using REST polling only.",
+        );
+      } else if (!this.NuHeatListener) {
         this.NuHeatListener = new NuHeatListener(this.NuHeatAPI, this);
         this.NuHeatListener.connect();
       }
@@ -119,8 +139,8 @@ class NuHeatPlatform {
   }
 
   async setupGroups() {
-    const groupArray = this.config.groups || [];
-    if (!(this.config.autoPopulateAwayModeSwitches || groupArray.length > 0)) {
+    const groupArray = this.getConfiguredGroups();
+    if (!this.shouldManageGroups()) {
       return;
     }
 
@@ -318,11 +338,17 @@ class NuHeatPlatform {
   }
 
   async refreshAccessories() {
-    await this.refreshGroups();
+    if (this.shouldManageGroups()) {
+      await this.refreshGroups();
+    }
     await this.refreshThermostats();
   }
 
   async refreshGroups() {
+    if (!this.shouldManageGroups()) {
+      return true;
+    }
+
     this.log.debug("Trying to refresh groups.");
     const response = await this.NuHeatAPI.refreshGroups();
 

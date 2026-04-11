@@ -98,6 +98,11 @@
       "debug": {
         "title": "Enable debug logs",
         "type": "boolean"
+      },
+      "enableNotifications": {
+        "title": "Enable Nuheat notifications (SignalR)",
+        "type": "boolean",
+        "description": "Disable this to use REST polling only while troubleshooting notification or API issues."
       }
     }
   },
