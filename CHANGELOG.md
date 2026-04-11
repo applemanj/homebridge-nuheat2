@@ -4,7 +4,7 @@ All notable changes to this project should be documented in this file
 
 ## [Unreleased]
 
-## [1.2.4-beta.1] - 2026-04-11
+## [1.2.4] - 2026-04-11
 
 ### Added
 
@@ -14,18 +14,13 @@ All notable changes to this project should be documented in this file
 
 ### Changed
 
-- Simplify thermostat operating-mode handling to match the documented Nuheat Swagger model
-- Refresh thermostats when Nuheat sends schedule notifications
-
-## [1.2.4-beta.0] - 2026-04-11
-
-### Changed
-
 - Delay platform startup until Homebridge finishes restoring cached accessories
 - Allow overriding Nuheat OAuth client settings through config or environment variables
 - Improve SignalR reconnection handling and token refresh behavior
-- Add basic regression tests and modernize package metadata for Homebridge 1.8+ and 2.0 betas
-- Publish the maintained fork under the new npm package identity `homebridge-nuheat2`
+- Add regression tests and modernize package metadata for current Homebridge releases
+- Publish the maintained fork under the npm package identity `homebridge-nuheat2`
+- Simplify thermostat operating-mode handling to match the documented Nuheat Swagger model
+- Refresh thermostats when Nuheat sends schedule notifications
 
 ### Fixed
 
