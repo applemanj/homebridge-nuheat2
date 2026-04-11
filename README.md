@@ -120,8 +120,8 @@ Run the test suite with:
 npm test
 ```
 
-## Roadmap
+## Future Work
 
-- Validate the plugin against an official Nuheat API client registration
-- Verify group and away-mode behavior against current live API responses
-- Revisit whether SignalR notifications can reduce polling further in real-world deployments
+- Validate the plugin against the official Nuheat API credentials requested for this integration.
+- Verify group and away-mode behavior against current live API responses.
+- Evaluate whether SignalR notifications can reduce polling further in real-world deployments.
