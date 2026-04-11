@@ -22,7 +22,10 @@
   "bugs": {
     "url": "https://github.com/applemanj/homebridge-nuheat2/issues"
   },
-  "author": "SenorShaun",
+  "author": "applemanj",
+  "contributors": [
+    "SenorShaun (original plugin author)"
+  ],
   "license": "MIT",
   "dependencies": {
     "@homebridge/plugin-ui-utils": "^0.0.19",

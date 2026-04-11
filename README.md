@@ -7,6 +7,8 @@ Homebridge platform plugin for Nuheat Signature floor-heating thermostats.
 
 This fork focuses on modernizing the plugin for current Homebridge releases, improving runtime stability, and preparing for Homebridge 2.0 while keeping the existing `NuHeat` platform configuration intact.
 
+This project builds on the original [`senorshaun/homebridge-nuheat`](https://github.com/senorshaun/homebridge-nuheat) plugin and retains attribution for Shaun's original work.
+
 ## Highlights
 
 - Automatically discovers thermostats on the authenticated Nuheat account
