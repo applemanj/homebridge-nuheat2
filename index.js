@@ -151,13 +151,8 @@ class NuHeatPlatform {
         }
 
         const uuid = UUIDGen.generate(deviceData.groupId.toString());
-        let deviceAccessory = false;
-
-        if (this.accessories.find((accessory) => accessory.uuid === uuid)) {
-          deviceAccessory = this.accessories.find(
-            (accessory) => accessory.uuid === uuid,
-          ).accessory;
-        }
+        let entry = this.accessories.find((a) => a.uuid === uuid);
+        let deviceAccessory = entry ? entry.accessory : false;
 
         if (!deviceAccessory) {
           this.log.info("Creating new away mode switch", deviceData.groupName);
@@ -170,12 +165,11 @@ class NuHeatPlatform {
             accessory,
           ]);
           deviceAccessory = accessory;
-          this.accessories.push({ uuid });
+          entry = { uuid };
+          this.accessories.push(entry);
         }
 
-        this.accessories.find(
-          (accessory) => accessory.uuid === uuid,
-        ).accessory = new NuHeatGroup(
+        entry.accessory = new NuHeatGroup(
           this.log,
           deviceData,
           deviceAccessory instanceof NuHeatGroup
@@ -184,13 +178,9 @@ class NuHeatPlatform {
           this.NuHeatAPI,
           Homebridge,
         );
-        this.accessories.find(
-          (accessory) => accessory.uuid === uuid,
-        ).existsInConfig = true;
+        entry.existsInConfig = true;
         this.log.info("Loaded away mode switch", deviceData.groupName);
-        this.accessories
-          .find((accessory) => accessory.uuid === uuid)
-          .accessory.updateValues(deviceData);
+        entry.accessory.updateValues(deviceData);
       }),
     );
   }
@@ -226,13 +216,8 @@ class NuHeatPlatform {
         }
 
         const uuid = UUIDGen.generate(deviceData.serialNumber.toString());
-        let deviceAccessory = false;
-
-        if (this.accessories.find((accessory) => accessory.uuid === uuid)) {
-          deviceAccessory = this.accessories.find(
-            (accessory) => accessory.uuid === uuid,
-          ).accessory;
-        }
+        let entry = this.accessories.find((a) => a.uuid === uuid);
+        let deviceAccessory = entry ? entry.accessory : false;
 
         if (!deviceAccessory) {
           this.log.info(
@@ -245,12 +230,11 @@ class NuHeatPlatform {
             accessory,
           ]);
           deviceAccessory = accessory;
-          this.accessories.push({ uuid });
+          entry = { uuid };
+          this.accessories.push(entry);
         }
 
-        this.accessories.find(
-          (accessory) => accessory.uuid === uuid,
-        ).accessory = new NuHeatThermostat(
+        entry.accessory = new NuHeatThermostat(
           this.log,
           deviceData,
           this.config.holdLength,
@@ -260,18 +244,14 @@ class NuHeatPlatform {
           this.NuHeatAPI,
           Homebridge,
         );
-        this.accessories.find(
-          (accessory) => accessory.uuid === uuid,
-        ).existsInConfig = true;
+        entry.existsInConfig = true;
         this.log.info(
           "Loaded thermostat " +
             deviceData.serialNumber +
             " " +
             deviceData.name,
         );
-        this.accessories
-          .find((accessory) => accessory.uuid === uuid)
-          .accessory.updateValues(deviceData);
+        entry.accessory.updateValues(deviceData);
 
         if (this.config.exposeScheduleSwitches) {
           this.setupScheduleSwitch(deviceData);
@@ -284,13 +264,8 @@ class NuHeatPlatform {
     const uuid = UUIDGen.generate(
       deviceData.serialNumber.toString() + "-schedule",
     );
-    let deviceAccessory = false;
-
-    if (this.accessories.find((accessory) => accessory.uuid === uuid)) {
-      deviceAccessory = this.accessories.find(
-        (accessory) => accessory.uuid === uuid,
-      ).accessory;
-    }
+    let entry = this.accessories.find((a) => a.uuid === uuid);
+    let deviceAccessory = entry ? entry.accessory : false;
 
     if (!deviceAccessory) {
       this.log.info("Creating schedule switch for thermostat", deviceData.name);
@@ -303,29 +278,25 @@ class NuHeatPlatform {
         accessory,
       ]);
       deviceAccessory = accessory;
-      this.accessories.push({ uuid });
+      entry = { uuid };
+      this.accessories.push(entry);
     }
 
-    this.accessories.find((accessory) => accessory.uuid === uuid).accessory =
-      new NuHeatScheduleSwitch(
-        this.log,
-        deviceData,
-        deviceAccessory instanceof NuHeatScheduleSwitch
-          ? deviceAccessory.accessory
-          : deviceAccessory,
-        this.NuHeatAPI,
-        Homebridge,
-      );
-    this.accessories.find(
-      (accessory) => accessory.uuid === uuid,
-    ).existsInConfig = true;
-    this.accessories
-      .find((accessory) => accessory.uuid === uuid)
-      .accessory.updateValues(deviceData);
+    entry.accessory = new NuHeatScheduleSwitch(
+      this.log,
+      deviceData,
+      deviceAccessory instanceof NuHeatScheduleSwitch
+        ? deviceAccessory.accessory
+        : deviceAccessory,
+      this.NuHeatAPI,
+      Homebridge,
+    );
+    entry.existsInConfig = true;
+    entry.accessory.updateValues(deviceData);
   }
 
   cleanupRemovedAccessories() {
-    this.accessories.forEach(function (thisAccessory) {
+    this.accessories.forEach((thisAccessory) => {
       if (thisAccessory.existsInConfig !== true) {
         try {
           this.log.info(
@@ -343,7 +314,7 @@ class NuHeatPlatform {
           thisAccessory.accessory,
         ]);
       }
-    }, this);
+    });
   }
 
   async refreshAccessories() {
@@ -360,7 +331,7 @@ class NuHeatPlatform {
       return false;
     }
 
-    response.forEach(function (deviceData) {
+    response.forEach((deviceData) => {
       const thisAccessory = this.accessories.find(
         (accessory) =>
           accessory.uuid === UUIDGen.generate(deviceData.groupId.toString()),
@@ -368,7 +339,7 @@ class NuHeatPlatform {
       if (thisAccessory) {
         thisAccessory.accessory.updateValues(deviceData);
       }
-    }, this);
+    });
 
     return true;
   }
@@ -382,7 +353,7 @@ class NuHeatPlatform {
       return false;
     }
 
-    response.forEach(function (deviceData) {
+    response.forEach((deviceData) => {
       const thisAccessory = this.accessories.find(
         (accessory) =>
           accessory.uuid ===
@@ -400,7 +371,7 @@ class NuHeatPlatform {
       if (scheduleAccessory) {
         scheduleAccessory.accessory.updateValues(deviceData);
       }
-    }, this);
+    });
 
     return true;
   }

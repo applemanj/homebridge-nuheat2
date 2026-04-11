@@ -3,91 +3,13 @@ const assert = require("node:assert/strict");
 
 const NuHeatScheduleSwitch = require("../lib/NuHeatScheduleSwitch");
 const { SCHEDULE_MODE } = require("../lib/NuHeatModels");
-
-function createHomebridgeStub() {
-  const Characteristic = {
-    Manufacturer: "Manufacturer",
-    Model: "Model",
-    SerialNumber: "SerialNumber",
-    On: "On",
-  };
-
-  class FakeCharacteristic {
-    constructor(name) {
-      this.name = name;
-      this.value = undefined;
-      this.handlers = new Map();
-    }
-
-    on(event, handler) {
-      this.handlers.set(event, handler);
-      return this;
-    }
-
-    updateValue(value) {
-      this.value = value;
-      return this;
-    }
-  }
-
-  class FakeService {
-    constructor() {
-      this.characteristics = new Map();
-    }
-
-    getCharacteristic(name) {
-      if (!this.characteristics.has(name)) {
-        this.characteristics.set(name, new FakeCharacteristic(name));
-      }
-
-      return this.characteristics.get(name);
-    }
-
-    setCharacteristic(name, value) {
-      this.getCharacteristic(name).value = value;
-      return this;
-    }
-  }
-
-  class FakeAccessory {
-    constructor() {
-      this.services = new Map();
-    }
-
-    getService(name) {
-      if (!this.services.has(name)) {
-        this.services.set(name, new FakeService());
-      }
-
-      return this.services.get(name);
-    }
-  }
-
-  return {
-    Characteristic,
-    accessory: new FakeAccessory(),
-    homebridge: {
-      hap: {
-        Characteristic,
-        Service: {
-          Switch: "Switch",
-          AccessoryInformation: "AccessoryInformation",
-        },
-      },
-    },
-  };
-}
-
-function createLogStub() {
-  return {
-    info() {},
-    debug() {},
-    error() {},
-  };
-}
+const {
+  createLogStub,
+  createSwitchHomebridgeStub,
+} = require("./support/helpers");
 
 test("schedule switch reflects schedule mode state", () => {
-  const { accessory, homebridge, Characteristic } = createHomebridgeStub();
+  const { accessory, homebridge, Characteristic } = createSwitchHomebridgeStub();
   const scheduleSwitch = new NuHeatScheduleSwitch(
     createLogStub(),
     { serialNumber: "123", name: "Bathroom", scheduleMode: SCHEDULE_MODE.HOLD },
@@ -110,7 +32,7 @@ test("schedule switch reflects schedule mode state", () => {
 });
 
 test("schedule switch resumes schedule when turned on", async () => {
-  const { accessory, homebridge, Characteristic } = createHomebridgeStub();
+  const { accessory, homebridge, Characteristic } = createSwitchHomebridgeStub();
   let calledWith = null;
   const scheduleSwitch = new NuHeatScheduleSwitch(
     createLogStub(),
