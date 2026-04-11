@@ -4,6 +4,19 @@ All notable changes to this project should be documented in this file
 
 ## [Unreleased]
 
+## [1.2.5] - 2026-04-11
+
+### Changed
+
+- Refactor platform accessory setup paths to reduce repeated lookups and simplify accessory updates
+- Consolidate shared Homebridge test stubs into reusable helpers
+- Restrict the test script to `*.test.js` files for cleaner local and CI output
+
+### Fixed
+
+- Improve SignalR notification tracing readability
+- Correct setpoint debug log spacing in thermostat updates
+
 ## [1.2.4] - 2026-04-11
 
 ### Added
