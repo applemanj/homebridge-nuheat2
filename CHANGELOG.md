@@ -4,6 +4,17 @@ All notable changes to this project should be documented in this file
 
 ## [Unreleased]
 
+## [1.2.6] - 2026-04-11
+
+### Added
+
+- Add an `enableNotifications` config option so SignalR can be disabled during troubleshooting
+
+### Changed
+
+- Skip group setup and refresh calls unless away-mode groups are actually configured
+- Improve Nuheat API error logging with request method, endpoint, status code, and response snippets
+
 ## [1.2.5] - 2026-04-11
 
 ### Changed
