@@ -4,23 +4,25 @@
   "singular": false,
   "schema": {
     "type": "object",
+    "required": [
+      "name",
+      "email",
+      "password"
+    ],
     "properties": {
       "name": {
         "title": "Name",
         "type": "string",
-        "required": true,
         "default": "NuHeat"
       },
       "email": {
         "title": "email",
         "type": "string",
-        "required": true,
         "format": "email"
       },
       "password": {
         "title": "password",
-        "type": "string",
-        "required": true
+        "type": "string"
       },
       "clientId": {
         "title": "Nuheat Client ID",
@@ -43,11 +45,13 @@
         "type": "array",
         "items": {
           "type": "object",
+          "required": [
+            "serialNumber"
+          ],
           "properties": {
             "serialNumber": {
               "title": "Serial Number",
-              "type": "string",
-              "required": true
+              "type": "string"
             },
             "disabled": {
               "title": "Disabled",
@@ -70,11 +74,13 @@
         "type": "array",
         "items": {
           "type": "object",
+          "required": [
+            "groupName"
+          ],
           "properties": {
             "groupName": {
               "title": "Group Name",
-              "type": "string",
-              "required": true
+              "type": "string"
             },
             "disabled": {
               "title": "Disabled",

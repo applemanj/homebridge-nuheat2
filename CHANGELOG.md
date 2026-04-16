@@ -4,6 +4,12 @@ All notable changes to this project should be documented in this file
 
 ## [Unreleased]
 
+## [1.2.8] - 2026-04-15
+
+### Fixed
+
+- Correct `config.schema.json` to use object-level `required` arrays so Homebridge verification accepts the schema
+
 ## [1.2.7] - 2026-04-15
 
 ### Added
