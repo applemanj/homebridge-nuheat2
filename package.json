@@ -4,7 +4,9 @@
   "description": "Homebridge Platform for NuHeat Signature Thermostats",
   "main": "index.js",
   "scripts": {
-    "test": "node --test test/*.test.js"
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build && node --test test/*.test.js"
   },
   "keywords": [
     "homebridge-plugin",
@@ -16,7 +18,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git://github.com/applemanj/homebridge-nuheat2.git"
+    "url": "https://github.com/applemanj/homebridge-nuheat2.git"
   },
   "homepage": "https://github.com/applemanj/homebridge-nuheat2#readme",
   "bugs": {
@@ -27,11 +29,14 @@
     "SenorShaun (original plugin author)"
   ],
   "license": "MIT",
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  },
   "dependencies": {
     "@homebridge/plugin-ui-utils": "^0.0.19",
+    "@microsoft/signalr": "^7.0.0",
     "node-fetch-cjs": "^3.2.0",
-    "node-html-parser": "^5.2.0",
-    "@microsoft/signalr": "^7.0.0"
+    "node-html-parser": "^5.2.0"
   },
   "overrides": {
     "ws": "^7.5.10",
@@ -50,5 +55,9 @@
     "config.schema.json",
     "README.md",
     "CHANGELOG.md"
-  ]
+  ],
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "typescript": "^6.0.2"
+  }
 }

@@ -1,0 +1,82 @@
+name: Publish to npm
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - package.json
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: npm-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.repository == 'applemanj/homebridge-nuheat2'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Run tests
+        run: npm test
+
+      - name: Read package metadata
+        id: package
+        shell: bash
+        run: |
+          set -euo pipefail
+          name="$(node -p "require('./package.json').name")"
+          version="$(node -p "require('./package.json').version")"
+          dist_tag="$(node -e "const version = require('./package.json').version; const prerelease = version.includes('-') ? version.split('-')[1].split('.')[0] : ''; process.stdout.write(prerelease);")"
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "dist_tag=$dist_tag" >> "$GITHUB_OUTPUT"
+
+      - name: Check npm for existing version
+        id: npm
+        shell: bash
+        run: |
+          set -euo pipefail
+          published_version="$(npm view "${{ steps.package.outputs.name }}" version 2>/dev/null || true)"
+          echo "published_version=$published_version" >> "$GITHUB_OUTPUT"
+          if [ "$published_version" = "${{ steps.package.outputs.version }}" ]; then
+            echo "should_publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_publish=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish package
+        if: steps.npm.outputs.should_publish == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -n "${{ steps.package.outputs.dist_tag }}" ]; then
+            npm publish --tag "${{ steps.package.outputs.dist_tag }}"
+          else
+            npm publish
+          fi
+
+      - name: Skip publish
+        if: steps.npm.outputs.should_publish != 'true'
+        run: echo "Version ${{ steps.package.outputs.version }} is already published to npm. Skipping publish."

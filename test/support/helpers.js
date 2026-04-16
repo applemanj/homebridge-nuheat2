@@ -1,133 +1,135 @@
 "use strict";
-
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.FakeService = exports.FakeCharacteristic = exports.FakeAccessory = void 0;
+exports.createLogStub = createLogStub;
+exports.createSwitchHomebridgeStub = createSwitchHomebridgeStub;
+exports.createThermostatHomebridgeStub = createThermostatHomebridgeStub;
 class FakeCharacteristic {
-  constructor(name) {
-    this.name = name;
-    this.value = undefined;
-    this.handlers = new Map();
-  }
-
-  setProps() {
-    return this;
-  }
-
-  on(event, handler) {
-    this.handlers.set(event, handler);
-    return this;
-  }
-
-  updateValue(value) {
-    this.value = value;
-    return this;
-  }
-
-  setCharacteristic() {
-    return this;
-  }
+    name;
+    value;
+    handlers;
+    constructor(name) {
+        this.name = name;
+        this.value = undefined;
+        this.handlers = new Map();
+    }
+    setProps() {
+        return this;
+    }
+    on(event, handler) {
+        this.handlers.set(event, handler);
+        return this;
+    }
+    updateValue(value) {
+        this.value = value;
+        return this;
+    }
+    setCharacteristic() {
+        return this;
+    }
 }
-
+exports.FakeCharacteristic = FakeCharacteristic;
 class FakeService {
-  constructor() {
-    this.characteristics = new Map();
-  }
-
-  getCharacteristic(name) {
-    if (!this.characteristics.has(name)) {
-      this.characteristics.set(name, new FakeCharacteristic(name));
+    characteristics;
+    constructor() {
+        this.characteristics = new Map();
     }
-
-    return this.characteristics.get(name);
-  }
-
-  setCharacteristic(name, value) {
-    this.getCharacteristic(name).value = value;
-    return this;
-  }
+    getCharacteristic(name) {
+        const key = String(name);
+        if (!this.characteristics.has(key)) {
+            this.characteristics.set(key, new FakeCharacteristic(key));
+        }
+        return this.characteristics.get(key);
+    }
+    setCharacteristic(name, value) {
+        this.getCharacteristic(name).value = value;
+        return this;
+    }
 }
-
+exports.FakeService = FakeService;
 class FakeAccessory {
-  constructor() {
-    this.services = new Map();
-  }
-
-  getService(name) {
-    if (!this.services.has(name)) {
-      this.services.set(name, new FakeService());
+    services;
+    constructor() {
+        this.services = new Map();
     }
-
-    return this.services.get(name);
-  }
+    getService(name) {
+        const key = String(name);
+        if (!this.services.has(key)) {
+            this.services.set(key, new FakeService());
+        }
+        return this.services.get(key);
+    }
+    addService(name) {
+        return this.getService(name);
+    }
 }
-
+exports.FakeAccessory = FakeAccessory;
 function createThermostatHomebridgeStub() {
-  const Characteristic = {
-    Manufacturer: "Manufacturer",
-    Model: "Model",
-    SerialNumber: "SerialNumber",
-    FirmwareRevision: "FirmwareRevision",
-    CurrentTemperature: "CurrentTemperature",
-    TargetTemperature: "TargetTemperature",
-    CurrentHeatingCoolingState: "CurrentHeatingCoolingState",
-    TargetHeatingCoolingState: {
-      OFF: 0,
-      HEAT: 1,
-      COOL: 2,
-      AUTO: 3,
-    },
-  };
-
-  return {
-    Characteristic,
-    accessory: new FakeAccessory(),
-    homebridge: {
-      hap: {
-        Characteristic,
-        Service: {
-          Thermostat: "Thermostat",
-          AccessoryInformation: "AccessoryInformation",
+    const Characteristic = {
+        Manufacturer: "Manufacturer",
+        Model: "Model",
+        SerialNumber: "SerialNumber",
+        FirmwareRevision: "FirmwareRevision",
+        CurrentTemperature: "CurrentTemperature",
+        TargetTemperature: "TargetTemperature",
+        CurrentHeatingCoolingState: "CurrentHeatingCoolingState",
+        TargetHeatingCoolingState: {
+            OFF: 0,
+            HEAT: 1,
+            COOL: 2,
+            AUTO: 3,
         },
-      },
-    },
-  };
+    };
+    return {
+        Characteristic,
+        accessory: new FakeAccessory(),
+        homebridge: {
+            hap: {
+                Characteristic,
+                Service: {
+                    Thermostat: "Thermostat",
+                    AccessoryInformation: "AccessoryInformation",
+                },
+                uuid: {
+                    generate(value) {
+                        return value;
+                    },
+                },
+            },
+        },
+    };
 }
-
 function createSwitchHomebridgeStub() {
-  const Characteristic = {
-    Manufacturer: "Manufacturer",
-    Model: "Model",
-    SerialNumber: "SerialNumber",
-    On: "On",
-  };
-
-  return {
-    Characteristic,
-    accessory: new FakeAccessory(),
-    homebridge: {
-      hap: {
+    const Characteristic = {
+        Manufacturer: "Manufacturer",
+        Model: "Model",
+        SerialNumber: "SerialNumber",
+        On: "On",
+    };
+    return {
         Characteristic,
-        Service: {
-          Switch: "Switch",
-          AccessoryInformation: "AccessoryInformation",
+        accessory: new FakeAccessory(),
+        homebridge: {
+            hap: {
+                Characteristic,
+                Service: {
+                    Switch: "Switch",
+                    AccessoryInformation: "AccessoryInformation",
+                },
+                uuid: {
+                    generate(value) {
+                        return value;
+                    },
+                },
+            },
         },
-      },
-    },
-  };
+    };
 }
-
 function createLogStub() {
-  return {
-    info() {},
-    debug() {},
-    error() {},
-    warn() {},
-  };
+    return {
+        info() { },
+        debug() { },
+        error() { },
+        warn() { },
+    };
 }
-
-module.exports = {
-  FakeAccessory,
-  FakeCharacteristic,
-  FakeService,
-  createLogStub,
-  createSwitchHomebridgeStub,
-  createThermostatHomebridgeStub,
-};

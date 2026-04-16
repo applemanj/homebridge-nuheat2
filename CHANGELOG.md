@@ -4,6 +4,18 @@ All notable changes to this project should be documented in this file
 
 ## [Unreleased]
 
+### Added
+
+- TypeScript build and typecheck scaffolding for incremental migration
+- TypeScript tests for the Swagger-normalization helpers, schedule switch, and thermostat behavior
+- GitHub Actions workflows for CI validation and automated npm publishing
+
+### Changed
+
+- Move the platform entrypoint, API client, accessory classes, logger, settings, models, and test helpers to TypeScript source under `src/`
+- Keep the published CommonJS runtime layout stable by compiling TypeScript back into `index.js`, `lib/`, and `test/`
+- Switch package repository metadata to the canonical GitHub URL for npm trusted publishing and provenance
+
 ## [1.2.6] - 2026-04-11
 
 ### Added
