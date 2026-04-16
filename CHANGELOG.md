@@ -4,6 +4,8 @@ All notable changes to this project should be documented in this file
 
 ## [Unreleased]
 
+## [1.2.7] - 2026-04-15
+
 ### Added
 
 - TypeScript build and typecheck scaffolding for incremental migration
