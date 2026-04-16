@@ -4,6 +4,12 @@ All notable changes to this project should be documented in this file
 
 ## [Unreleased]
 
+## [1.2.9] - 2026-04-15
+
+### Fixed
+
+- Remove the published `homebridge` peer dependency so verification installs no longer pull in `homebridge` and `hap-nodejs`
+
 ## [1.2.8] - 2026-04-15
 
 ### Fixed
