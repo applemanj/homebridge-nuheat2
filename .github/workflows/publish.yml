@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   id-token: write
 
 concurrency:
@@ -48,10 +48,23 @@ jobs:
           set -euo pipefail
           name="$(node -p "require('./package.json').name")"
           version="$(node -p "require('./package.json').version")"
+          tag="v$version"
+          release_notes_path="docs/release-notes/$version.md"
           dist_tag="$(node -e "const version = require('./package.json').version; const prerelease = version.includes('-') ? version.split('-')[1].split('.')[0] : ''; process.stdout.write(prerelease);")"
           echo "name=$name" >> "$GITHUB_OUTPUT"
           echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "release_notes_path=$release_notes_path" >> "$GITHUB_OUTPUT"
           echo "dist_tag=$dist_tag" >> "$GITHUB_OUTPUT"
+
+      - name: Require checked-in release notes
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -f "${{ steps.package.outputs.release_notes_path }}" ]; then
+            echo "Expected release notes file '${{ steps.package.outputs.release_notes_path }}' was not found." >&2
+            exit 1
+          fi
 
       - name: Check npm for existing version
         id: npm
@@ -80,3 +93,20 @@ jobs:
       - name: Skip publish
         if: steps.npm.outputs.should_publish != 'true'
         run: echo "Version ${{ steps.package.outputs.version }} is already published to npm. Skipping publish."
+
+      - name: Create or update GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view "${{ steps.package.outputs.tag }}" >/dev/null 2>&1; then
+            gh release edit "${{ steps.package.outputs.tag }}" \
+              --title "${{ steps.package.outputs.tag }}" \
+              --notes-file "${{ steps.package.outputs.release_notes_path }}"
+          else
+            gh release create "${{ steps.package.outputs.tag }}" \
+              --target "${GITHUB_SHA}" \
+              --title "${{ steps.package.outputs.tag }}" \
+              --notes-file "${{ steps.package.outputs.release_notes_path }}"
+          fi

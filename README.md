@@ -138,9 +138,11 @@ npm test
 GitHub Actions now handles two jobs for this repository:
 
 - `.github/workflows/ci.yml` runs `npm ci`, `npm run typecheck`, and `npm test` on pushes and pull requests across Node 20, 22, and 24
-- `.github/workflows/publish.yml` runs on pushes to `master` when `package.json` changes, re-runs the checks on Node 24, and publishes to npm only when the `package.json` version is not already on the registry
+- `.github/workflows/publish.yml` runs on pushes to `master` when `package.json` changes, re-runs the checks on Node 24, publishes to npm only when the `package.json` version is not already on the registry, and creates or updates the matching GitHub Release
 
 The publish workflow also maps prerelease versions to npm dist-tags automatically. For example, `1.2.7-beta.1` publishes with the `beta` tag, while stable versions publish to `latest`.
+
+Release notes are expected in `docs/release-notes/<version>.md`. The publish workflow will fail if that file is missing for the version in `package.json`, which makes the GitHub Release step part of the normal release checklist instead of a manual follow-up.
 
 ### Recommended npm Setup
 
