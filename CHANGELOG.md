@@ -4,6 +4,16 @@ All notable changes to this project should be documented in this file
 
 ## [Unreleased]
 
+## [1.2.10] - 2026-04-21
+
+### Added
+
+- Add non-sensitive OAuth debug logging for configured client ID, requested scopes, consent handling, and refresh-token rotation during local API credential validation
+
+### Changed
+
+- Request the full issued Nuheat OAuth scope set: `openapi openid profile offline_access`
+
 ## [1.2.9] - 2026-04-15
 
 ### Fixed

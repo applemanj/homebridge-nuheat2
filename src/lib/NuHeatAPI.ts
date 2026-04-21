@@ -79,6 +79,8 @@ interface TokenResponse {
   token_type: string;
 }
 
+const OAUTH_SCOPES = ["openapi", "openid", "profile", "offline_access"] as const;
+
 class NuHeatAPI {
   email: string;
   password: string;
@@ -135,7 +137,22 @@ class NuHeatAPI {
       this.log.warn(
         "NuHeatAPI: Using built-in OAuth client credentials. Request your own Nuheat API client for long-term reliability.",
       );
+    } else {
+      this.log.info(
+        "NuHeatAPI: Using configured OAuth client ID " + this.oauthClientId + ".",
+      );
     }
+
+    this.log.debug(
+      "NuHeatAPI: OAuth redirect URI " +
+        this.oauthRedirectUri +
+        ". Requested scopes: " +
+        this.getRequestedScope(),
+    );
+  }
+
+  getRequestedScope(): string {
+    return OAUTH_SCOPES.join(" ");
   }
 
   async setAwayMode(groupId: number, awayMode: boolean): Promise<any> {
@@ -357,7 +374,12 @@ class NuHeatAPI {
     authEndpoint.searchParams.set("response_type", "code");
     authEndpoint.searchParams.set("client_id", this.oauthClientId);
     authEndpoint.searchParams.set("redirect_uri", this.oauthRedirectUri);
-    authEndpoint.searchParams.set("scope", "openapi openid offline_access");
+    authEndpoint.searchParams.set("scope", this.getRequestedScope());
+
+    this.log.debug(
+      "NuHeatAPI: Requesting OAuth authorization page with scopes: " +
+        this.getRequestedScope(),
+    );
 
     const response = await this.fetch(authEndpoint.toString(), {
       redirect: "follow",
@@ -479,10 +501,15 @@ class NuHeatAPI {
         __RequestVerificationToken: requestVerificationToken,
       });
 
+      this.log.debug(
+        "NuHeatAPI: OAuth consent required. Confirming scopes: " +
+          this.getRequestedScope(),
+      );
+
       const response = await this.fetch(NUHEAT_API_CONSENT_URI, {
         body:
           loginBody.toString() +
-          "&ScopesConsented=openid&ScopesConsented=openapi&ScopesConsented=offline_access",
+          OAUTH_SCOPES.map((scope) => "&ScopesConsented=" + scope).join(""),
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
           Cookie: cookie + "; " + sessionCookie,
@@ -596,8 +623,15 @@ class NuHeatAPI {
         return null;
       }
       this.tokenScope = redirectUrl.searchParams.get("scope") ?? "";
+      const token = (await response.json()) as TokenResponse;
+      this.log.debug(
+        "NuHeatAPI: OAuth access token received. Granted scopes: " +
+          (token.scope || this.tokenScope || "unknown") +
+          ". Refresh token present: " +
+          String(!!token.refresh_token),
+      );
 
-      return (await response.json()) as TokenResponse;
+      return token;
     }
 
     return null;
@@ -632,6 +666,7 @@ class NuHeatAPI {
     this.refreshToken = token.refresh_token;
     this.tokenScope = token.scope ?? this.tokenScope;
     this.tokenType = token.token_type;
+    const refreshTokenRotated = token.refresh_token !== this.refreshToken;
 
     this.refreshInterval -= 420;
 
@@ -644,7 +679,13 @@ class NuHeatAPI {
       token.token_type + " " + token.access_token,
     );
     this.log.debug(
-      "NuHeatAPI: Successfully refreshed the NuHeat API access token.",
+      "NuHeatAPI: Successfully refreshed the NuHeat API access token. Scope: " +
+        this.tokenScope +
+        ". Refresh token rotated: " +
+        String(refreshTokenRotated) +
+        ". Expires in: " +
+        token.expires_in +
+        " seconds.",
     );
 
     return true;
