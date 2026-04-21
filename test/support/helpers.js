@@ -8,12 +8,15 @@ class FakeCharacteristic {
     name;
     value;
     handlers;
+    props;
     constructor(name) {
         this.name = name;
         this.value = undefined;
         this.handlers = new Map();
+        this.props = {};
     }
-    setProps() {
+    setProps(props) {
+        this.props = { ...this.props, ...props };
         return this;
     }
     on(event, handler) {
@@ -72,12 +75,20 @@ function createThermostatHomebridgeStub() {
         FirmwareRevision: "FirmwareRevision",
         CurrentTemperature: "CurrentTemperature",
         TargetTemperature: "TargetTemperature",
-        CurrentHeatingCoolingState: "CurrentHeatingCoolingState",
+        CurrentHeatingCoolingState: {
+            OFF: 0,
+            HEAT: 1,
+            COOL: 2,
+        },
         TargetHeatingCoolingState: {
             OFF: 0,
             HEAT: 1,
             COOL: 2,
             AUTO: 3,
+        },
+        TemperatureDisplayUnits: {
+            CELSIUS: 0,
+            FAHRENHEIT: 1,
         },
     };
     return {

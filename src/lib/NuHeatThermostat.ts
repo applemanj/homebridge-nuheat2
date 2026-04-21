@@ -11,12 +11,16 @@ import type {
 let Characteristic: Record<string, any>;
 let ThermostatService: unknown;
 
+const MIN_TARGET_TEMPERATURE_C = 10;
+const MAX_TARGET_TEMPERATURE_C = 38;
+
 class NuHeatThermostat {
   log: LoggerLike;
   deviceData: AccessoryThermostat;
   holdLength: number;
   accessory: AccessoryLike;
   NuHeatAPI: NuHeatAPI;
+  temperatureScale?: string;
 
   constructor(
     log: LoggerLike,
@@ -25,6 +29,7 @@ class NuHeatThermostat {
     accessory: AccessoryLike,
     NuHeatAPI: NuHeatAPI,
     homebridge: HomebridgeLike,
+    temperatureScale?: string,
   ) {
     Characteristic = homebridge.hap.Characteristic;
     ThermostatService = homebridge.hap.Service.Thermostat;
@@ -33,6 +38,7 @@ class NuHeatThermostat {
     this.holdLength = holdLength;
     this.accessory = accessory;
     this.NuHeatAPI = NuHeatAPI;
+    this.temperatureScale = temperatureScale;
 
     this.accessory
       .getService(homebridge.hap.Service.AccessoryInformation)
@@ -50,44 +56,75 @@ class NuHeatThermostat {
   }
 
   setupListeners(): void {
+    const thermostatService = this.accessory.getService(ThermostatService);
+
     this.log.info("holdLength: " + this.holdLength, this.deviceData.name);
-    this.accessory
-      .getService(ThermostatService)
+    thermostatService
       .getCharacteristic(Characteristic.TargetHeatingCoolingState)
       .setProps({
-        validValues: [0, 1],
+        validValues: [Characteristic.TargetHeatingCoolingState.HEAT],
       })
       .on("set", this.setTargetHeatingCooling.bind(this));
-    this.accessory
-      .getService(ThermostatService)
-      .getCharacteristic(Characteristic.CurrentTemperature)
-      .setProps({
-        minValue: -100,
-        maxValue: 100,
-      });
-    this.accessory
-      .getService(ThermostatService)
+    thermostatService.getCharacteristic(Characteristic.CurrentTemperature).setProps({
+      minValue: -100,
+      maxValue: 100,
+    });
+    thermostatService
       .getCharacteristic(Characteristic.TargetTemperature)
       .setProps({
         minStep: 0.5,
       })
       .on("set", this.setTargetTemperature.bind(this));
+
+    this.updateTemperatureDisplayUnits();
   }
 
-  setTargetHeatingCooling(_value: number, callback: Callback): void {
+  async setTargetHeatingCooling(
+    value: number,
+    callback: Callback,
+  ): Promise<void> {
+    if (value !== Characteristic.TargetHeatingCoolingState.OFF) {
+      callback(null);
+      void this.updateAccessory();
+      return;
+    }
+
+    this.log.info(
+      "NuHeat does not support an off mode. Setting the thermostat to its minimum target temperature instead.",
+      this.deviceData.name,
+    );
+
+    const response = await this.NuHeatAPI.setHeatSetpoint(
+      this.deviceData.serialNumber ?? "",
+      this.toNuHeatTemperature(MIN_TARGET_TEMPERATURE_C),
+      this.holdLength,
+    );
+
+    if (!response) {
+      this.log.error(
+        "Error setting minimum target temperature for off request",
+        this.deviceData.name,
+      );
+      callback(new Error("Error: setTargetHeatingCooling"));
+      return;
+    }
+
+    this.updateValues(response);
     callback(null);
-    void this.updateAccessory();
   }
 
   async setTargetTemperature(value: number, callback: Callback): Promise<void> {
     this.log.info(
-      "Setting target temperature to " + value + "Â°C",
+      "Setting target temperature to " + value + " C",
       this.deviceData.name,
     );
-    if (value < 10) value = 10;
-    if (value > 38) value = 38;
+    if (value < MIN_TARGET_TEMPERATURE_C) value = MIN_TARGET_TEMPERATURE_C;
+    if (value > MAX_TARGET_TEMPERATURE_C) value = MAX_TARGET_TEMPERATURE_C;
     const heatSetPoint = this.toNuHeatTemperature(value);
-    this.log.debug("setTargetTemperature " + heatSetPoint, this.deviceData.name);
+    this.log.debug(
+      "setTargetTemperature " + heatSetPoint,
+      this.deviceData.name,
+    );
 
     const response = await this.NuHeatAPI.setHeatSetpoint(
       this.deviceData.serialNumber ?? "",
@@ -117,11 +154,13 @@ class NuHeatThermostat {
 
   updateValues(newValues: AccessoryThermostat): void {
     if (this.isOnline(newValues)) {
+      this.updateTemperatureDisplayUnits();
+
       let currentTemperature = Number(
         this.toHBTemperature(newValues.currentTemperature ?? 0),
       );
       this.log.debug(
-        "Current temperature is " + currentTemperature + "Â°C",
+        "Current temperature is " + currentTemperature + " C",
         this.deviceData.name,
       );
       this.accessory
@@ -132,10 +171,14 @@ class NuHeatThermostat {
       let setPointTemperature = Number(
         this.toHBTemperature(newValues.setPointTemp ?? 0),
       );
-      if (setPointTemperature < 10) setPointTemperature = 10;
-      if (setPointTemperature > 38) setPointTemperature = 38;
+      if (setPointTemperature < MIN_TARGET_TEMPERATURE_C) {
+        setPointTemperature = MIN_TARGET_TEMPERATURE_C;
+      }
+      if (setPointTemperature > MAX_TARGET_TEMPERATURE_C) {
+        setPointTemperature = MAX_TARGET_TEMPERATURE_C;
+      }
       this.log.debug(
-        "Setpoint temperature is " + setPointTemperature + "Â°C",
+        "Setpoint temperature is " + setPointTemperature + " C",
         this.deviceData.name,
       );
       this.accessory
@@ -143,9 +186,11 @@ class NuHeatThermostat {
         .getCharacteristic(Characteristic.TargetTemperature)
         .updateValue(setPointTemperature);
 
-      let currentHeatingCoolingState = 0;
+      let currentHeatingCoolingState =
+        Characteristic.CurrentHeatingCoolingState.OFF;
       if (newValues.isHeating) {
-        currentHeatingCoolingState = 1;
+        currentHeatingCoolingState =
+          Characteristic.CurrentHeatingCoolingState.HEAT;
       }
       this.log.debug(
         "Current heating state is " + currentHeatingCoolingState,
@@ -217,6 +262,38 @@ class NuHeatThermostat {
     }
 
     return true;
+  }
+
+  updateTemperatureDisplayUnits(): void {
+    const displayUnits = this.toHomeKitDisplayUnits(this.temperatureScale);
+    if (
+      displayUnits === undefined ||
+      !Characteristic.TemperatureDisplayUnits
+    ) {
+      return;
+    }
+
+    this.accessory
+      .getService(ThermostatService)
+      .getCharacteristic(Characteristic.TemperatureDisplayUnits)
+      .updateValue(displayUnits);
+  }
+
+  toHomeKitDisplayUnits(temperatureScale?: string): number | undefined {
+    if (!temperatureScale || !Characteristic.TemperatureDisplayUnits) {
+      return undefined;
+    }
+
+    const normalizedScale = temperatureScale.trim().toLowerCase();
+    if (normalizedScale.startsWith("f")) {
+      return Characteristic.TemperatureDisplayUnits.FAHRENHEIT;
+    }
+
+    if (normalizedScale.startsWith("c")) {
+      return Characteristic.TemperatureDisplayUnits.CELSIUS;
+    }
+
+    return undefined;
   }
 }
 

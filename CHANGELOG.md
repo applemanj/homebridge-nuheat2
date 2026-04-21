@@ -4,6 +4,15 @@ All notable changes to this project should be documented in this file
 
 ## [Unreleased]
 
+## [1.2.12] - 2026-04-21
+
+### Fixed
+
+- Treat Nuheat thermostats as heat-only in HomeKit so the target mode no longer advertises a misleading off option
+- Translate any incoming HomeKit off request into the minimum Nuheat setpoint instead of bouncing back after refresh
+- Apply the Nuheat account temperature scale to the thermostat display-units characteristic so HomeKit shows the correct hardware display unit
+- Coalesce and briefly de-duplicate repeated SignalR thermostat and group notifications to reduce redundant full refreshes and log noise
+
 ## [1.2.11] - 2026-04-21
 
 ### Fixed

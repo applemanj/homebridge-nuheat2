@@ -21,18 +21,22 @@ interface Notification {
   timeStamp: string;
 }
 
+const NOTIFICATION_DEDUPE_WINDOW_MS = 2000;
+
 class NuHeatListener {
   nuHeatAPI: NuHeatAPI;
   nuHeatPlatform: NotificationPlatformLike;
   log: LoggerLike;
   notificationTypes: string[];
   connection: any;
+  recentNotifications: Map<string, number>;
 
   constructor(nuHeatAPI: NuHeatAPI, nuheatPlatform: NotificationPlatformLike) {
     this.nuHeatAPI = nuHeatAPI;
     this.nuHeatPlatform = nuheatPlatform;
     this.log = nuheatPlatform.log;
     this.notificationTypes = ["2", "4"];
+    this.recentNotifications = new Map();
 
     this.connection = new signalR.HubConnectionBuilder()
       .withUrl("https://api.mynuheat.com/notificationsHost", {
@@ -116,8 +120,11 @@ class NuHeatListener {
   }
 
   traceNotification(notificationList: Notification[]): void {
+    let shouldRefreshThermostats = false;
+    let shouldRefreshGroups = false;
+
     notificationList.forEach((notification) => {
-      let notificationType = "";
+      let notificationType = "Unknown";
       switch (notification.type) {
         case 0:
         case 1:
@@ -125,15 +132,15 @@ class NuHeatListener {
           break;
         case 2:
           notificationType = "Thermostat";
-          void this.nuHeatPlatform.refreshThermostats();
+          shouldRefreshThermostats = shouldRefreshThermostats || !this.isDuplicateNotification(notification);
           break;
         case 3:
           notificationType = "Schedule";
-          void this.nuHeatPlatform.refreshThermostats();
+          shouldRefreshThermostats = shouldRefreshThermostats || !this.isDuplicateNotification(notification);
           break;
         case 4:
           notificationType = "Group";
-          void this.nuHeatPlatform.refreshGroups();
+          shouldRefreshGroups = shouldRefreshGroups || !this.isDuplicateNotification(notification);
           break;
       }
       this.log.debug(
@@ -142,11 +149,51 @@ class NuHeatListener {
           notification.id +
           " at " +
           notification.timeStamp +
-          ". Refreshing data for all " +
-          notificationType +
-          "s",
+          ".",
       );
     });
+
+    if (shouldRefreshThermostats) {
+      void this.nuHeatPlatform.refreshThermostats();
+    }
+
+    if (shouldRefreshGroups) {
+      void this.nuHeatPlatform.refreshGroups();
+    }
+  }
+
+  isDuplicateNotification(notification: Notification): boolean {
+    const key =
+      String(notification.type) +
+      ":" +
+      String(notification.id) +
+      ":" +
+      notification.timeStamp;
+    const now = Date.now();
+
+    this.cleanupRecentNotifications(now);
+
+    const lastSeenAt = this.recentNotifications.get(key);
+    if (
+      lastSeenAt !== undefined &&
+      now - lastSeenAt < NOTIFICATION_DEDUPE_WINDOW_MS
+    ) {
+      this.log.debug(
+        "Ignoring duplicate notification " + key + ".",
+      );
+      return true;
+    }
+
+    this.recentNotifications.set(key, now);
+    return false;
+  }
+
+  cleanupRecentNotifications(now: number): void {
+    for (const [key, seenAt] of this.recentNotifications.entries()) {
+      if (now - seenAt >= NOTIFICATION_DEDUPE_WINDOW_MS) {
+        this.recentNotifications.delete(key);
+      }
+    }
   }
 }
 

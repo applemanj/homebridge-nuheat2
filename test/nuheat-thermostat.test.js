@@ -19,6 +19,52 @@ test("manual mode is exposed to HomeKit as heat, not off", () => {
         .getCharacteristic(Characteristic.TargetHeatingCoolingState).value;
     assert.equal(value, Characteristic.TargetHeatingCoolingState.HEAT);
 });
+test("heat-only thermostats do not advertise an off target state", () => {
+    const { accessory, homebridge, Characteristic } = (0, helpers_1.createThermostatHomebridgeStub)();
+    new NuHeatThermostat((0, helpers_1.createLogStub)(), { serialNumber: "124", swVersion: "1.0", name: "Bathroom" }, 1440, accessory, {}, homebridge);
+    const props = accessory
+        .getService(homebridge.hap.Service.Thermostat)
+        .getCharacteristic(Characteristic.TargetHeatingCoolingState).props;
+    assert.deepEqual(props.validValues, [Characteristic.TargetHeatingCoolingState.HEAT]);
+});
+test("off requests are translated to the minimum NuHeat target temperature", async () => {
+    const { accessory, homebridge, Characteristic } = (0, helpers_1.createThermostatHomebridgeStub)();
+    let requestedSetPoint;
+    const thermostat = new NuHeatThermostat((0, helpers_1.createLogStub)(), { serialNumber: "125", swVersion: "1.0", name: "Bathroom" }, 1440, accessory, {
+        async setHeatSetpoint(_serialNumber, setPoint) {
+            requestedSetPoint = setPoint;
+            return {
+                Online: true,
+                currentTemperature: 1209,
+                setPointTemp: Number(setPoint),
+                isHeating: false,
+                operatingMode: 2,
+            };
+        },
+    }, homebridge);
+    await new Promise((resolve, reject) => {
+        void thermostat.setTargetHeatingCooling(Characteristic.TargetHeatingCoolingState.OFF, (error) => {
+            if (error) {
+                reject(error);
+                return;
+            }
+            resolve();
+        });
+    });
+    assert.equal(requestedSetPoint, thermostat.toNuHeatTemperature(10));
+    const targetState = accessory
+        .getService(homebridge.hap.Service.Thermostat)
+        .getCharacteristic(Characteristic.TargetHeatingCoolingState).value;
+    assert.equal(targetState, Characteristic.TargetHeatingCoolingState.HEAT);
+});
+test("hardware display units follow the NuHeat account temperature scale", () => {
+    const { accessory, homebridge, Characteristic } = (0, helpers_1.createThermostatHomebridgeStub)();
+    new NuHeatThermostat((0, helpers_1.createLogStub)(), { serialNumber: "126", swVersion: "1.0", name: "Bathroom" }, 1440, accessory, {}, homebridge, "Fahrenheit");
+    const displayUnits = accessory
+        .getService(homebridge.hap.Service.Thermostat)
+        .getCharacteristic(Characteristic.TemperatureDisplayUnits).value;
+    assert.equal(displayUnits, Characteristic.TemperatureDisplayUnits.FAHRENHEIT);
+});
 test("string online values are parsed without mutating the payload", () => {
     const { accessory, homebridge, Characteristic } = (0, helpers_1.createThermostatHomebridgeStub)();
     const thermostat = new NuHeatThermostat((0, helpers_1.createLogStub)(), { serialNumber: "456", swVersion: "1.0", name: "Ensuite" }, 1440, accessory, {}, homebridge);
@@ -33,6 +79,6 @@ test("string online values are parsed without mutating the payload", () => {
     const currentState = accessory
         .getService(homebridge.hap.Service.Thermostat)
         .getCharacteristic(Characteristic.CurrentHeatingCoolingState).value;
-    assert.equal(currentState, 1);
+    assert.equal(currentState, Characteristic.CurrentHeatingCoolingState.HEAT);
     assert.equal(payload.Online, "'True'");
 });

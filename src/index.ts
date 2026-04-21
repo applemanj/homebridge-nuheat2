@@ -310,6 +310,7 @@ class NuHeatPlatform {
           getPlatformAccessory(deviceAccessory),
           this.NuHeatAPI,
           Homebridge,
+          this.account?.temperatureScale,
         );
         entry!.existsInConfig = true;
         this.log.info(
