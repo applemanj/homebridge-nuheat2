@@ -120,6 +120,15 @@ class NuHeatPlatform {
     );
   }
 
+  getConfiguredDevices(): DeviceConfig[] {
+    return (this.config.devices || []).filter(
+      (device): device is DeviceConfig =>
+        !!device &&
+        typeof device.serialNumber === "string" &&
+        device.serialNumber.trim().length > 0,
+    );
+  }
+
   shouldManageGroups(): boolean {
     return (
       !!this.config.autoPopulateAwayModeSwitches ||
@@ -246,7 +255,7 @@ class NuHeatPlatform {
   }
 
   async setupThermostats(): Promise<void> {
-    const deviceArray = this.config.devices || [];
+    const deviceArray = this.getConfiguredDevices();
     const response = await this.NuHeatAPI.refreshThermostats();
 
     if (!response || !Array.isArray(response)) {

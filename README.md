@@ -67,11 +67,11 @@ Most users should configure the plugin through Homebridge Config UI X, but the e
 - `email`: MyNuheat account email address
 - `Email`: Legacy alias still accepted for backward compatibility, but `email` is the preferred documented field
 - `password`: MyNuheat account password
-- `devices`: Optional list of thermostats to expose. If omitted or empty, every thermostat on the account will be discovered automatically
+- `devices`: Optional list of thermostats to expose. If omitted or empty, every thermostat on the account will be discovered automatically. Blank rows in the UI are ignored
 - `serialNumber`: Thermostat serial number from MyNuheat
 - `autoPopulateAwayModeSwitches`: Automatically expose away-mode switches for all groups on the account
 - `exposeScheduleSwitches`: Optionally expose a switch per thermostat that reflects whether the thermostat is following its schedule and can be turned on to resume the schedule
-- `groups`: Optional allow-list of groups to expose as away-mode switches. This only affects group/away-mode accessories
+- `groups`: Optional allow-list of groups to expose as away-mode switches. This only affects group/away-mode accessories. Blank rows in the UI are ignored
 - `groupName`: Group name as shown in MyNuheat
 - `holdLength`: Hold duration in minutes
 - `refresh`: Poll interval in seconds, default `60`

@@ -74,6 +74,11 @@ class NuHeatPlatform {
             typeof group.groupName === "string" &&
             group.groupName.trim().length > 0);
     }
+    getConfiguredDevices() {
+        return (this.config.devices || []).filter((device) => !!device &&
+            typeof device.serialNumber === "string" &&
+            device.serialNumber.trim().length > 0);
+    }
     shouldManageGroups() {
         return (!!this.config.autoPopulateAwayModeSwitches ||
             this.getConfiguredGroups().length > 0);
@@ -154,7 +159,7 @@ class NuHeatPlatform {
         }));
     }
     async setupThermostats() {
-        const deviceArray = this.config.devices || [];
+        const deviceArray = this.getConfiguredDevices();
         const response = await this.NuHeatAPI.refreshThermostats();
         if (!response || !Array.isArray(response)) {
             this.log.error("Error getting data from NuHeatAPI");

@@ -4,6 +4,13 @@ All notable changes to this project should be documented in this file
 
 ## [Unreleased]
 
+## [1.2.11] - 2026-04-21
+
+### Fixed
+
+- Relax the optional `devices` and `groups` array item schema so Homebridge Config UI no longer shows validation errors for blank rows
+- Ignore blank `devices` rows at runtime so they do not interfere with thermostat auto-discovery
+
 ## [1.2.10] - 2026-04-21
 
 ### Added

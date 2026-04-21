@@ -43,11 +43,9 @@
       "devices": {
         "title": "Devices",
         "type": "array",
+        "description": "Optional allow-list of thermostats to expose. Leave empty to auto-discover all thermostats on the account.",
         "items": {
           "type": "object",
-          "required": [
-            "serialNumber"
-          ],
           "properties": {
             "serialNumber": {
               "title": "Serial Number",
@@ -72,11 +70,9 @@
       "groups": {
         "title": "Groups",
         "type": "array",
+        "description": "Optional allow-list of groups to expose as away-mode switches. Leave empty unless you want to add specific groups manually.",
         "items": {
           "type": "object",
-          "required": [
-            "groupName"
-          ],
           "properties": {
             "groupName": {
               "title": "Group Name",
