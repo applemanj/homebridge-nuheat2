@@ -4,6 +4,8 @@ All notable changes to this project should be documented in this file
 
 ## [Unreleased]
 
+## [1.2.13] - 2026-04-24
+
 ### Changed
 
 - Subscribe to Nuheat schedule notifications alongside thermostat and group notifications
