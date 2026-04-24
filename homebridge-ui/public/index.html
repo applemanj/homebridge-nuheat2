@@ -1,0 +1,244 @@
+<link rel="stylesheet" href="styles.css" />
+
+<main class="container">
+  <header>
+    <h1>Nuheat Radiant Floor Heating</h1>
+    <p class="subtitle">
+      Configure MyNuheat account access, HomeKit accessory exposure, and
+      connection behavior.
+    </p>
+  </header>
+
+  <section class="panel">
+    <div class="section-header">
+      <div>
+        <h2>Account</h2>
+        <p class="help">
+          Most homes only need the MyNuheat email and password used by the
+          Nuheat mobile app or web portal.
+        </p>
+      </div>
+      <span id="auth-status" class="status-pill warn">Checking config</span>
+    </div>
+
+    <div class="settings-grid">
+      <label class="field">
+        <span>Platform Name</span>
+        <input id="name" type="text" placeholder="NuHeat" />
+        <small>Name shown in Homebridge logs for this platform instance.</small>
+      </label>
+
+      <label class="field">
+        <span>MyNuheat Email</span>
+        <input id="email" type="email" placeholder="name@example.com" />
+        <small>Email address for the account that owns the thermostats.</small>
+      </label>
+
+      <label id="password-row" class="field">
+        <span>MyNuheat Password</span>
+        <input id="password" type="password" placeholder="Password" />
+        <small>Leave blank to keep an existing saved password.</small>
+      </label>
+    </div>
+
+    <div class="actions">
+      <button id="save-account" class="primary">Save Account</button>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="section-header">
+      <div>
+        <h2>Accessories</h2>
+        <p class="help">
+          Leave thermostat and group lists empty to use automatic discovery.
+          Add rows only when you want to limit what appears in HomeKit.
+        </p>
+      </div>
+      <span id="accessory-status" class="status-pill warn">Auto discovery</span>
+    </div>
+
+    <div class="split-grid">
+      <div class="list-panel">
+        <div class="list-heading">
+          <div>
+            <h3>Thermostat Allow-List</h3>
+            <p class="help">
+              Optional serial numbers from MyNuheat.
+            </p>
+          </div>
+          <button id="add-device" class="secondary" type="button">Add</button>
+        </div>
+        <div id="devices-list" class="dynamic-list"></div>
+      </div>
+
+      <div class="list-panel">
+        <div class="list-heading">
+          <div>
+            <h3>Away Mode Groups</h3>
+            <p class="help">
+              Optional group names exactly as shown in MyNuheat.
+            </p>
+          </div>
+          <button id="add-group" class="secondary" type="button">Add</button>
+        </div>
+        <div id="groups-list" class="dynamic-list"></div>
+      </div>
+    </div>
+
+    <label class="checkbox">
+      <input id="auto-populate-away-mode-switches" type="checkbox" />
+      <span>
+        Expose away-mode switches for all groups
+        <small>
+          Automatically creates HomeKit switches for every Nuheat group on the
+          account.
+        </small>
+      </span>
+    </label>
+
+    <label class="checkbox">
+      <input id="expose-schedule-switches" type="checkbox" />
+      <span>
+        Expose schedule switches
+        <small>
+          Adds one switch per thermostat that can resume the Nuheat schedule.
+        </small>
+      </span>
+    </label>
+
+    <div class="actions">
+      <button id="save-accessories" class="primary">Save Accessories</button>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="section-header">
+      <div>
+        <h2>Behavior</h2>
+        <p class="help">
+          Tune setpoint holds, polling, Nuheat notifications, and debug logging.
+        </p>
+      </div>
+      <span id="behavior-status" class="status-pill good">Notifications on</span>
+    </div>
+
+    <div class="settings-grid">
+      <label class="field">
+        <span>Hold Length (minutes)</span>
+        <input id="hold-length" type="number" min="0" max="1440" step="1" />
+        <small>
+          0 holds until the next schedule event; 1440 creates a permanent hold.
+        </small>
+      </label>
+
+      <label class="field">
+        <span>Polling Interval (seconds)</span>
+        <input id="refresh" type="number" min="30" step="1" />
+        <small>
+          Polling is a safety net. Values below 30 are raised to 30 at runtime.
+        </small>
+      </label>
+    </div>
+
+    <label class="checkbox">
+      <input id="enable-notifications" type="checkbox" />
+      <span>
+        Enable Nuheat notifications
+        <small>
+          Uses SignalR notifications for faster updates. Disable only while
+          troubleshooting.
+        </small>
+      </span>
+    </label>
+
+    <label class="checkbox">
+      <input id="debug" type="checkbox" />
+      <span>
+        Enable debug logging
+        <small>
+          Writes verbose Nuheat API, notification, and accessory activity to the
+          Homebridge log.
+        </small>
+      </span>
+    </label>
+
+    <div class="actions">
+      <button id="save-behavior" class="primary">Save Behavior</button>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="section-header">
+      <div>
+        <h2>Advanced OAuth</h2>
+        <p class="help">
+          Leave these fields blank unless Nuheat has issued confidential-client
+          credentials for testing. PKCE public-client support is planned but is
+          not active yet.
+        </p>
+      </div>
+      <span id="oauth-status" class="status-pill warn">Built-in fallback</span>
+    </div>
+
+    <div class="settings-grid">
+      <label class="field">
+        <span>Nuheat Client ID</span>
+        <input id="client-id" type="text" placeholder="Optional client ID" />
+        <small>Advanced override for a Nuheat-issued OAuth client ID.</small>
+      </label>
+
+      <label id="client-secret-row" class="field">
+        <span>Nuheat Client Secret (Legacy)</span>
+        <input
+          id="client-secret"
+          type="password"
+          placeholder="Leave blank to keep existing"
+        />
+        <small>
+          Required with a custom client ID until PKCE support ships. Do not
+          publish or share this value.
+        </small>
+      </label>
+
+      <label class="field">
+        <span>Nuheat Redirect URI</span>
+        <input id="redirect-uri" type="text" placeholder="http://localhost" />
+        <small>Defaults to http://localhost.</small>
+      </label>
+    </div>
+
+    <div class="actions">
+      <button id="save-oauth" class="primary">Save OAuth Settings</button>
+      <button id="clear-oauth" class="secondary" type="button">
+        Clear Overrides
+      </button>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="section-header">
+      <div>
+        <h2>Diagnostics</h2>
+        <p class="help">
+          Review the saved configuration and exposure strategy before
+          restarting Homebridge.
+        </p>
+      </div>
+      <button id="refresh-diagnostics" class="secondary" type="button">
+        Refresh
+      </button>
+    </div>
+    <div id="diagnostics-summary" class="diagnostics-summary muted">
+      No diagnostics loaded yet.
+    </div>
+    <div id="diagnostics-empty" class="help hidden">
+      Save settings to generate a configuration summary.
+    </div>
+    <div id="diagnostics-list" class="diagnostics-list"></div>
+  </section>
+</main>
+
+<div id="toast-container" class="toast-container"></div>
+
+<script src="index.js"></script>

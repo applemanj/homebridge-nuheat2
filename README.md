@@ -44,7 +44,13 @@ The published package name for this maintained fork is `homebridge-nuheat2`. The
 
 ## Configuration
 
-Most users should configure the plugin through Homebridge Config UI X, but the equivalent JSON looks like this:
+Most users should configure the plugin through the custom Homebridge admin UI. It is organized into Account, Accessories, Behavior, Advanced OAuth, and Diagnostics panels and writes the same config keys shown below.
+
+Sensitive values are handled deliberately: saved passwords and legacy client secrets are not redisplayed in the UI. Leave those fields blank to keep the saved value, enter a new value to replace it, or use the Clear Overrides button in Advanced OAuth to remove OAuth overrides.
+
+The Diagnostics panel summarizes the saved configuration and exposure strategy before restart. It does not make live Nuheat API calls.
+
+The equivalent JSON looks like this:
 
 ```json
 {
@@ -52,8 +58,12 @@ Most users should configure the plugin through Homebridge Config UI X, but the e
   "name": "NuHeat",
   "email": "email@address.com",
   "password": "password123",
-  "devices": [{ "serialNumber": "1111111" }, { "serialNumber": "2222222" }],
+  "devices": [
+    { "serialNumber": "1111111", "disabled": false },
+    { "serialNumber": "2222222", "disabled": false }
+  ],
   "autoPopulateAwayModeSwitches": true,
+  "groups": [{ "groupName": "Main Floor", "disabled": false }],
   "exposeScheduleSwitches": false,
   "enableNotifications": true,
   "holdLength": 1440,
@@ -70,16 +80,17 @@ Most users should configure the plugin through Homebridge Config UI X, but the e
 - `password`: MyNuheat account password
 - `devices`: Optional list of thermostats to expose. If omitted or empty, every thermostat on the account will be discovered automatically. Blank rows in the UI are ignored
 - `serialNumber`: Thermostat serial number from MyNuheat
+- `disabled`: Available on `devices` and `groups` rows. Keeps the row saved while preventing that thermostat or group from being exposed
 - `autoPopulateAwayModeSwitches`: Automatically expose away-mode switches for all groups on the account
 - `exposeScheduleSwitches`: Optionally expose a switch per thermostat that reflects whether the thermostat is following its schedule and can be turned on to resume the schedule
 - `groups`: Optional allow-list of groups to expose as away-mode switches. This only affects group/away-mode accessories. Blank rows in the UI are ignored
 - `groupName`: Group name as shown in MyNuheat
-- `holdLength`: Hold duration in minutes. Values are clamped from `0` to `1440`
+- `holdLength`: Hold duration in minutes, default `1440`. Values are clamped from `0` to `1440`
 - `refresh`: Poll interval in seconds, default `60`. Values lower than `30` are raised to `30` to reduce API traffic
 - `enableNotifications`: Enables Nuheat SignalR notifications for faster updates. Defaults to `true`; set to `false` only while troubleshooting
-- `debug`: Enables verbose logging
-- `clientId`: Optional advanced override for the Nuheat OAuth client ID
-- `clientSecret`: Optional legacy OAuth client secret override for confidential-client credentials
+- `debug`: Enables verbose Nuheat API, notification, and accessory logging. Defaults to `false`
+- `clientId`: Optional advanced override for the Nuheat OAuth client ID. Current releases require this to be paired with `clientSecret`; PKCE public-client support is planned but is not active yet
+- `clientSecret`: Optional legacy OAuth client secret override for confidential-client credentials. Required with a custom `clientId` until PKCE support ships. Do not publish or share this value
 - `redirectUri`: Optional advanced override for the Nuheat OAuth redirect URI, default `http://localhost`
 
 ### Hold Length Behavior

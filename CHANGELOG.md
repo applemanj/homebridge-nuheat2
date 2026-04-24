@@ -9,6 +9,7 @@ All notable changes to this project should be documented in this file
 - Subscribe to Nuheat schedule notifications alongside thermostat and group notifications
 - Remove an unused Homebridge UI utility dependency from the published package
 - Improve Homebridge Config UI labels, defaults, grouping, and sensitive-field handling
+- Add a custom Homebridge admin UI aligned with the shared Roborock design system
 - Document the upcoming PKCE public-client direction for Nuheat OAuth credentials
 - Enforce a 30-second minimum polling interval at runtime to reduce accidental API load
 

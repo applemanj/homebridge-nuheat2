@@ -2,6 +2,8 @@
   "pluginAlias": "NuHeat",
   "pluginType": "platform",
   "singular": false,
+  "customUi": true,
+  "customUiPath": "./homebridge-ui",
   "headerDisplay": "Connect Nuheat Signature floor-heating thermostats to HomeKit. Most users only need their MyNuheat account email and password.",
   "footerDisplay": "The npm package is homebridge-nuheat2, but the Homebridge platform remains NuHeat for backward compatibility.",
   "schema": {
@@ -12,6 +14,13 @@
       "password"
     ],
     "properties": {
+      "platform": {
+        "title": "Platform",
+        "type": "string",
+        "default": "NuHeat",
+        "const": "NuHeat",
+        "description": "Homebridge platform identifier. Keep this set to NuHeat."
+      },
       "name": {
         "title": "Platform Name",
         "type": "string",
@@ -116,13 +125,13 @@
       "clientId": {
         "title": "Nuheat Client ID",
         "type": "string",
-        "description": "Advanced OAuth override. Leave blank unless Nuheat has issued credentials for your integration."
+        "description": "Advanced OAuth override. Current releases require this to be paired with a clientSecret; PKCE public-client support is planned but not active yet."
       },
       "clientSecret": {
         "title": "Nuheat Client Secret (Legacy)",
         "type": "string",
         "format": "password",
-        "description": "Advanced OAuth override for confidential-client credentials. Leave blank for the built-in fallback or future public-client flow."
+        "description": "Advanced OAuth override for confidential-client credentials. Required with a custom clientId until PKCE support ships. Do not publish or share this value."
       },
       "redirectUri": {
         "title": "Nuheat Redirect URI",
@@ -133,6 +142,7 @@
     }
   },
   "layout": [
+    "platform",
     "name",
     "email",
     "password",
