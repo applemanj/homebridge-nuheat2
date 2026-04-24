@@ -2,6 +2,8 @@
   "pluginAlias": "NuHeat",
   "pluginType": "platform",
   "singular": false,
+  "headerDisplay": "Connect Nuheat Signature floor-heating thermostats to HomeKit. Most users only need their MyNuheat account email and password.",
+  "footerDisplay": "The npm package is homebridge-nuheat2, but the Homebridge platform remains NuHeat for backward compatibility.",
   "schema": {
     "type": "object",
     "required": [
@@ -11,103 +13,168 @@
     ],
     "properties": {
       "name": {
-        "title": "Name",
+        "title": "Platform Name",
         "type": "string",
-        "default": "NuHeat"
+        "default": "NuHeat",
+        "description": "Display name used for this platform instance in Homebridge logs."
       },
       "email": {
-        "title": "email",
+        "title": "MyNuheat Email",
         "type": "string",
-        "format": "email"
+        "format": "email",
+        "description": "Email address for the MyNuheat account that owns the thermostats."
       },
       "password": {
-        "title": "password",
-        "type": "string"
-      },
-      "clientId": {
-        "title": "Nuheat Client ID",
+        "title": "MyNuheat Password",
         "type": "string",
-        "description": "Optional advanced override. Leave blank to use the built-in default client ID."
-      },
-      "clientSecret": {
-        "title": "Nuheat Client Secret",
-        "type": "string",
-        "description": "Optional advanced override. Leave blank to use the built-in default client secret."
-      },
-      "redirectUri": {
-        "title": "Nuheat Redirect URI",
-        "type": "string",
-        "description": "Optional advanced override for OAuth redirect URI.",
-        "placeholder": "http://localhost"
+        "format": "password",
+        "description": "Password for the MyNuheat account."
       },
       "devices": {
-        "title": "Devices",
+        "title": "Thermostat Allow-List",
         "type": "array",
-        "description": "Optional allow-list of thermostats to expose. Leave empty to auto-discover all thermostats on the account.",
+        "default": [],
+        "description": "Optional. Leave empty to expose every thermostat on the account. Add rows only if you want to limit HomeKit to specific thermostat serial numbers.",
         "items": {
           "type": "object",
           "properties": {
             "serialNumber": {
               "title": "Serial Number",
-              "type": "string"
+              "type": "string",
+              "description": "Thermostat serial number from MyNuheat."
             },
             "disabled": {
               "title": "Disabled",
-              "type": "boolean"
+              "type": "boolean",
+              "default": false,
+              "description": "Keep this row in the config but do not expose this thermostat."
             }
           }
         }
       },
-      "autoPopulateAwayModeSwitches": {
-        "title": "Auto populate Away Mode switches for all available groups",
-        "type": "boolean"
-      },
-      "exposeScheduleSwitches": {
-        "title": "Expose per-thermostat schedule switches",
-        "type": "boolean",
-        "description": "Creates a switch for each thermostat that reflects whether its schedule is active and can be turned on to resume the configured schedule."
-      },
       "groups": {
-        "title": "Groups",
+        "title": "Away Mode Group Allow-List",
         "type": "array",
-        "description": "Optional allow-list of groups to expose as away-mode switches. Leave empty unless you want to add specific groups manually.",
+        "default": [],
+        "description": "Optional. Leave empty unless you want specific Nuheat groups exposed as away-mode switches.",
         "items": {
           "type": "object",
           "properties": {
             "groupName": {
               "title": "Group Name",
-              "type": "string"
+              "type": "string",
+              "description": "Group name exactly as shown in MyNuheat."
             },
             "disabled": {
               "title": "Disabled",
-              "type": "boolean"
+              "type": "boolean",
+              "default": false,
+              "description": "Keep this row in the config but do not expose this group."
             }
           }
         }
       },
+      "autoPopulateAwayModeSwitches": {
+        "title": "Expose Away Mode Switches For All Groups",
+        "type": "boolean",
+        "default": false,
+        "description": "Automatically create HomeKit away-mode switches for every Nuheat group on the account."
+      },
+      "exposeScheduleSwitches": {
+        "title": "Expose Schedule Switches",
+        "type": "boolean",
+        "default": false,
+        "description": "Create one switch per thermostat. The switch is on when the thermostat follows its Nuheat schedule and can be turned on to resume the schedule."
+      },
       "holdLength": {
-        "title": "Hold Length (in minutes)",
+        "title": "Hold Length (minutes)",
         "type": "integer",
-        "description": "If set to 0, set point changes will hold until the next scheduled event. If set to 1440 (default), set point changes will be permanent. Set to any value in between for a timed hold.",
-        "placeholder": 1440
+        "default": 1440,
+        "minimum": 0,
+        "maximum": 1440,
+        "description": "Duration for HomeKit setpoint changes. Use 0 to hold until the next scheduled event, 1-1439 for a timed hold, or 1440 for a permanent hold."
       },
       "refresh": {
-        "title": "Refresh Interval (in seconds)",
+        "title": "Polling Interval (seconds)",
         "type": "integer",
-        "placeholder": 60,
-        "minimum": 1
-      },
-      "debug": {
-        "title": "Enable debug logs",
-        "type": "boolean"
+        "default": 60,
+        "minimum": 30,
+        "description": "How often to poll Nuheat as a safety net. Notifications update faster when enabled; avoid very low values to reduce API traffic."
       },
       "enableNotifications": {
-        "title": "Enable Nuheat notifications (SignalR)",
+        "title": "Enable Nuheat Notifications",
         "type": "boolean",
-        "description": "Disable this to use REST polling only while troubleshooting notification or API issues."
+        "default": true,
+        "description": "Use Nuheat SignalR notifications for faster updates. Disable only while troubleshooting, which leaves polling as the fallback."
+      },
+      "debug": {
+        "title": "Enable Debug Logs",
+        "type": "boolean",
+        "default": false,
+        "description": "Write detailed Nuheat API and accessory activity to the Homebridge log."
+      },
+      "clientId": {
+        "title": "Nuheat Client ID",
+        "type": "string",
+        "description": "Advanced OAuth override. Leave blank unless Nuheat has issued credentials for your integration."
+      },
+      "clientSecret": {
+        "title": "Nuheat Client Secret (Legacy)",
+        "type": "string",
+        "format": "password",
+        "description": "Advanced OAuth override for confidential-client credentials. Leave blank for the built-in fallback or future public-client flow."
+      },
+      "redirectUri": {
+        "title": "Nuheat Redirect URI",
+        "type": "string",
+        "default": "http://localhost",
+        "description": "Advanced OAuth redirect URI. The default is http://localhost."
       }
     }
   },
+  "layout": [
+    "name",
+    "email",
+    "password",
+    {
+      "type": "fieldset",
+      "title": "Accessories",
+      "expandable": true,
+      "expanded": false,
+      "description": "Control which Nuheat thermostats and group switches appear in HomeKit.",
+      "items": [
+        "devices",
+        "autoPopulateAwayModeSwitches",
+        "groups",
+        "exposeScheduleSwitches"
+      ]
+    },
+    {
+      "type": "fieldset",
+      "title": "Behavior",
+      "expandable": true,
+      "expanded": false,
+      "description": "Tune holds, refresh behavior, notifications, and logging.",
+      "items": [
+        "holdLength",
+        "refresh",
+        "enableNotifications",
+        "debug"
+      ]
+    },
+    {
+      "type": "fieldset",
+      "title": "Advanced OAuth",
+      "expandable": true,
+      "expanded": false,
+      "description": "Only change these fields when testing Nuheat-issued API credentials.",
+      "items": [
+        "clientId",
+        "clientSecret",
+        "redirectUri"
+      ]
+    }
+  ],
   "form": null,
   "display": null
 }

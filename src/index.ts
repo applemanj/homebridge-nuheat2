@@ -91,6 +91,7 @@ class NuHeatPlatform {
       1440,
       Math.max(0, this.config.holdLength || 1440),
     );
+    this.config.refresh = Math.max(30, this.config.refresh || 60);
     this.api = api;
     this.log = new Logger(log, this.config.debug || false);
 
@@ -157,6 +158,8 @@ class NuHeatPlatform {
       },
     );
 
+    const refreshIntervalMs = (this.config.refresh ?? 60) * 1000;
+
     if (await this.NuHeatAPI.returnAccessToken()) {
       await this.loadAccount();
       await this.setupGroups();
@@ -169,7 +172,7 @@ class NuHeatPlatform {
 
       this.refreshTimer = setInterval(
         this.refreshAccessories.bind(this),
-        (this.config.refresh || 60) * 1000,
+        refreshIntervalMs,
       );
 
       if (this.config.enableNotifications === false) {
@@ -182,7 +185,7 @@ class NuHeatPlatform {
       this.log.error("Unable to acquire an access token. We will try again later.");
       setTimeout(
         this.setupPlatform.bind(this),
-        (this.config.refresh || 60) * 1000,
+        refreshIntervalMs,
       );
     }
   }

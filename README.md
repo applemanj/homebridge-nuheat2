@@ -55,6 +55,7 @@ Most users should configure the plugin through Homebridge Config UI X, but the e
   "devices": [{ "serialNumber": "1111111" }, { "serialNumber": "2222222" }],
   "autoPopulateAwayModeSwitches": true,
   "exposeScheduleSwitches": false,
+  "enableNotifications": true,
   "holdLength": 1440,
   "refresh": 60
 }
@@ -73,11 +74,12 @@ Most users should configure the plugin through Homebridge Config UI X, but the e
 - `exposeScheduleSwitches`: Optionally expose a switch per thermostat that reflects whether the thermostat is following its schedule and can be turned on to resume the schedule
 - `groups`: Optional allow-list of groups to expose as away-mode switches. This only affects group/away-mode accessories. Blank rows in the UI are ignored
 - `groupName`: Group name as shown in MyNuheat
-- `holdLength`: Hold duration in minutes
-- `refresh`: Poll interval in seconds, default `60`
+- `holdLength`: Hold duration in minutes. Values are clamped from `0` to `1440`
+- `refresh`: Poll interval in seconds, default `60`. Values lower than `30` are raised to `30` to reduce API traffic
+- `enableNotifications`: Enables Nuheat SignalR notifications for faster updates. Defaults to `true`; set to `false` only while troubleshooting
 - `debug`: Enables verbose logging
-- `clientId`: Optional advanced override for the Nuheat OAuth client ID. This is recommended once you have official Nuheat API credentials
-- `clientSecret`: Optional advanced override for the Nuheat OAuth client secret
+- `clientId`: Optional advanced override for the Nuheat OAuth client ID
+- `clientSecret`: Optional legacy OAuth client secret override for confidential-client credentials
 - `redirectUri`: Optional advanced override for the Nuheat OAuth redirect URI, default `http://localhost`
 
 ### Hold Length Behavior
@@ -101,7 +103,7 @@ Nuheat's public OpenAPI documentation indicates that third-party developers shou
 - [Nuheat OpenAPI docs](https://api.mynuheat.com/)
 - [Nuheat API access request page](https://www.nuheat.com/openapi)
 
-This fork still supports the legacy built-in OAuth client settings as a fallback, but using your own `clientId` and `clientSecret` is the recommended long-term path once Nuheat issues them for your integration.
+This fork still supports the legacy built-in OAuth client settings as a fallback. Nuheat is expected to issue a PKCE-based public client for this integration so the plugin can eventually ship with a public `clientId` without distributing a client secret. Until that migration is complete, keep any issued `clientSecret` out of GitHub, npm, screenshots, and shared logs.
 
 ## What's New In This Fork
 
@@ -161,5 +163,6 @@ After that, bump the version in `package.json`, push to `master`, and GitHub Act
 ## Future Work
 
 - Validate the plugin against the official Nuheat API credentials requested for this integration.
+- Move the normal OAuth path to Nuheat's PKCE-based public client once the new client details are issued.
 - Verify group and away-mode behavior against current live API responses.
 - Evaluate whether SignalR notifications can reduce polling further in real-world deployments.

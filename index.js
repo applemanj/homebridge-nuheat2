@@ -51,6 +51,7 @@ class NuHeatPlatform {
         this.config = config;
         this.config.email = this.config.Email || this.config.email;
         this.config.holdLength = Math.min(1440, Math.max(0, this.config.holdLength || 1440));
+        this.config.refresh = Math.max(30, this.config.refresh || 60);
         this.api = api;
         this.log = new logger_1.Logger(log, this.config.debug || false);
         if (this.api?.on) {
@@ -96,6 +97,7 @@ class NuHeatPlatform {
             clientSecret: this.config.clientSecret,
             redirectUri: this.config.redirectUri,
         });
+        const refreshIntervalMs = (this.config.refresh ?? 60) * 1000;
         if (await this.NuHeatAPI.returnAccessToken()) {
             await this.loadAccount();
             await this.setupGroups();
@@ -104,7 +106,7 @@ class NuHeatPlatform {
             if (this.refreshTimer) {
                 clearInterval(this.refreshTimer);
             }
-            this.refreshTimer = setInterval(this.refreshAccessories.bind(this), (this.config.refresh || 60) * 1000);
+            this.refreshTimer = setInterval(this.refreshAccessories.bind(this), refreshIntervalMs);
             if (this.config.enableNotifications === false) {
                 this.log.info("NuHeat notifications are disabled. Using REST polling only.");
             }
@@ -115,7 +117,7 @@ class NuHeatPlatform {
         }
         else {
             this.log.error("Unable to acquire an access token. We will try again later.");
-            setTimeout(this.setupPlatform.bind(this), (this.config.refresh || 60) * 1000);
+            setTimeout(this.setupPlatform.bind(this), refreshIntervalMs);
         }
     }
     async setupGroups() {
