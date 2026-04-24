@@ -660,13 +660,15 @@ class NuHeatAPI {
     }
 
     const token = (await response.json()) as TokenResponse;
+    const previousRefreshToken = this.refreshToken;
     this.accessToken = token.access_token;
     this.accessTokenTimestamp = Date.now();
     this.refreshInterval = token.expires_in;
     this.refreshToken = token.refresh_token;
     this.tokenScope = token.scope ?? this.tokenScope;
     this.tokenType = token.token_type;
-    const refreshTokenRotated = token.refresh_token !== this.refreshToken;
+    const refreshTokenRotated =
+      !!previousRefreshToken && token.refresh_token !== previousRefreshToken;
 
     this.refreshInterval -= 420;
 

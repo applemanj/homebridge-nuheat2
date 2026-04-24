@@ -4,6 +4,20 @@ import assert = require("node:assert/strict");
 import NuHeatListener = require("../lib/NuHeatListener");
 import { createLogStub } from "./support/helpers";
 
+test("listener subscribes to thermostat, schedule, and group notifications", () => {
+  const listener = new NuHeatListener({} as any, {
+    log: createLogStub(),
+    async refreshThermostats() {
+      return true;
+    },
+    async refreshGroups() {
+      return true;
+    },
+  });
+
+  assert.deepEqual(listener.notificationTypes, ["2", "3", "4"]);
+});
+
 test("notification batches coalesce to a single thermostat refresh", () => {
   let thermostatRefreshes = 0;
   let groupRefreshes = 0;

@@ -35,7 +35,7 @@ class NuHeatListener {
     this.nuHeatAPI = nuHeatAPI;
     this.nuHeatPlatform = nuheatPlatform;
     this.log = nuheatPlatform.log;
-    this.notificationTypes = ["2", "4"];
+    this.notificationTypes = ["2", "3", "4"];
     this.recentNotifications = new Map();
 
     this.connection = new signalR.HubConnectionBuilder()
@@ -132,15 +132,21 @@ class NuHeatListener {
           break;
         case 2:
           notificationType = "Thermostat";
-          shouldRefreshThermostats = shouldRefreshThermostats || !this.isDuplicateNotification(notification);
+          if (!this.isDuplicateNotification(notification)) {
+            shouldRefreshThermostats = true;
+          }
           break;
         case 3:
           notificationType = "Schedule";
-          shouldRefreshThermostats = shouldRefreshThermostats || !this.isDuplicateNotification(notification);
+          if (!this.isDuplicateNotification(notification)) {
+            shouldRefreshThermostats = true;
+          }
           break;
         case 4:
           notificationType = "Group";
-          shouldRefreshGroups = shouldRefreshGroups || !this.isDuplicateNotification(notification);
+          if (!this.isDuplicateNotification(notification)) {
+            shouldRefreshGroups = true;
+          }
           break;
       }
       this.log.debug(

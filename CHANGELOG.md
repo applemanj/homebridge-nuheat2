@@ -4,6 +4,16 @@ All notable changes to this project should be documented in this file
 
 ## [Unreleased]
 
+### Changed
+
+- Subscribe to Nuheat schedule notifications alongside thermostat and group notifications
+- Remove an unused Homebridge UI utility dependency from the published package
+
+### Fixed
+
+- Correct refresh-token rotation debug logging so it compares against the previous token
+- Keep notification de-duplication bookkeeping consistent across mixed notification batches
+
 ## [1.2.12] - 2026-04-21
 
 ### Fixed
