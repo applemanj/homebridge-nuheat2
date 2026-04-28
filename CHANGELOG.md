@@ -4,6 +4,12 @@ All notable changes to this project should be documented in this file
 
 ## [Unreleased]
 
+## [1.2.14] - 2026-04-27
+
+### Changed
+
+- Make the custom Homebridge admin UI styles inherit the active Homebridge theme instead of forcing a separate dark design
+
 ## [1.2.13] - 2026-04-24
 
 ### Changed
