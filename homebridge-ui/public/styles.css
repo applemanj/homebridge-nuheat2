@@ -1,10 +1,19 @@
 :root {
-  --plugin-border: var(
-    --bs-border-color-translucent,
-    rgba(148, 163, 184, 0.28)
+  --plugin-font-family: var(
+    --bs-body-font-family,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    "Helvetica Neue",
+    Arial,
+    sans-serif
   );
-  --plugin-strong-border: rgba(148, 163, 184, 0.42);
-  --plugin-subtle-surface: rgba(148, 163, 184, 0.08);
+  --plugin-border: color-mix(in srgb, currentColor 24%, transparent);
+  --plugin-strong-border: color-mix(in srgb, currentColor 36%, transparent);
+  --plugin-subtle-surface: color-mix(in srgb, currentColor 6%, transparent);
+  --plugin-control-surface: color-mix(in srgb, currentColor 7%, transparent);
+  --plugin-control-disabled: color-mix(in srgb, currentColor 4%, transparent);
   --plugin-accent: var(--bs-primary, #0a84ff);
   --plugin-accent-surface: rgba(10, 132, 255, 0.08);
   --plugin-warning-surface: rgba(245, 158, 11, 0.12);
@@ -22,7 +31,9 @@ body {
   margin: 0;
   color: inherit;
   background: transparent;
-  font: inherit;
+  font-family: var(--plugin-font-family);
+  font-size: 1rem;
+  line-height: 1.5;
 }
 
 .container {
@@ -37,6 +48,7 @@ body {
 header h1 {
   margin: 0 0 8px;
   font-size: 2rem;
+  font-weight: 600;
   line-height: 1.1;
 }
 
@@ -64,12 +76,14 @@ header h1 {
 .panel h2 {
   margin: 0 0 6px;
   font-size: 1.18rem;
+  font-weight: 600;
   line-height: 1.25;
 }
 
 .panel h3 {
   margin: 0 0 4px;
   font-size: 1rem;
+  font-weight: 600;
   line-height: 1.25;
 }
 
@@ -102,6 +116,32 @@ header h1 {
 .field input,
 .field select {
   width: 100%;
+}
+
+input,
+select {
+  display: block;
+  width: 100%;
+  min-height: 38px;
+  padding: 0.45rem 0.75rem;
+  color: inherit;
+  background: var(--bs-body-bg, var(--plugin-control-surface));
+  border: 1px solid var(--plugin-border);
+  border-radius: 0.375rem;
+  font-family: var(--plugin-font-family);
+  font-size: 1rem;
+  line-height: 1.5;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    background-color 0.15s ease;
+}
+
+input:focus,
+select:focus {
+  border-color: color-mix(in srgb, var(--plugin-accent) 72%, currentColor);
+  box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--plugin-accent) 18%, transparent);
+  outline: 0;
 }
 
 .field small,
@@ -139,6 +179,7 @@ input::placeholder {
 }
 
 .readonly input {
+  background: var(--plugin-control-disabled);
   opacity: 0.68;
 }
 
@@ -150,7 +191,22 @@ input::placeholder {
 }
 
 button {
-  font: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0.45rem 0.85rem;
+  border: 1px solid transparent;
+  font-family: var(--plugin-font-family);
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.5;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    filter 0.15s ease;
 }
 
 button.primary,
@@ -166,13 +222,14 @@ button.primary {
 
 button.secondary {
   color: inherit;
-  background: transparent;
+  background: var(--plugin-subtle-surface);
   border: 1px solid var(--plugin-border);
 }
 
 button.primary:hover,
 button.secondary:hover {
   filter: brightness(1.04);
+  box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--plugin-accent) 10%, transparent);
 }
 
 .toast-container {
@@ -187,7 +244,7 @@ button.secondary:hover {
 
 .toast {
   color: inherit;
-  background: var(--bs-body-bg, var(--plugin-subtle-surface));
+  background: var(--bs-body-bg, var(--plugin-control-surface));
   border: 1px solid var(--plugin-border);
   border-radius: 8px;
   padding: 12px 16px;
@@ -310,12 +367,14 @@ button.secondary:hover {
 .status-pill.good {
   background: var(--plugin-success-surface);
   border-color: rgba(34, 197, 94, 0.42);
+  color: inherit;
 }
 
 .pill.warn,
 .status-pill.warn {
   background: var(--plugin-warning-surface);
   border-color: rgba(245, 158, 11, 0.42);
+  color: inherit;
 }
 
 @keyframes slide-in {

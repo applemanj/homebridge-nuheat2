@@ -4,6 +4,12 @@ All notable changes to this project should be documented in this file
 
 ## [Unreleased]
 
+## [1.2.15] - 2026-04-27
+
+### Fixed
+
+- Restore Homebridge-like typography, form controls, and button styling in the custom admin UI while keeping theme-compatible colors
+
 ## [1.2.14] - 2026-04-27
 
 ### Changed
