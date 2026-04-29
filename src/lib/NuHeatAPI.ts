@@ -113,15 +113,17 @@ class NuHeatAPI {
       options.clientId || process.env.NUHEAT_API_CLIENT_ID || "";
     const configuredClientSecret =
       options.clientSecret || process.env.NUHEAT_API_CLIENT_SECRET || "";
+    const usingBuiltInPublicClient =
+      !configuredClientId || configuredClientId === NUHEAT_API_CLIENT_ID;
     this.oauthClientId = configuredClientId || NUHEAT_API_CLIENT_ID;
-    this.oauthClientSecret = configuredClientId
-      ? configuredClientSecret || NUHEAT_API_CLIENT_SECRET
-      : "";
+    this.oauthClientSecret = usingBuiltInPublicClient
+      ? ""
+      : configuredClientSecret || NUHEAT_API_CLIENT_SECRET;
     this.oauthRedirectUri =
       options.redirectUri ||
       process.env.NUHEAT_API_REDIRECT_URI ||
       NUHEAT_API_REDIRECT_URI;
-    this.usingBuiltInClient = !configuredClientId;
+    this.usingBuiltInClient = usingBuiltInPublicClient;
     this.usePkce = !this.oauthClientSecret;
     this.pkceCodeVerifier = "";
     this.headers = new HeadersCtor();

@@ -1,4 +1,5 @@
 const PLATFORM_NAME = "NuHeat";
+const BUILT_IN_CLIENT_ID = "homebridge-nuheat2_260421";
 
 const elements = {
   name: document.getElementById("name"),
@@ -139,7 +140,9 @@ function renderConfig(config) {
 
   elements.clientId.value = config.clientId || "";
   elements.clientSecret.value = "";
-  state.hasClientSecret = Boolean(config.clientSecret);
+  state.hasClientSecret = Boolean(
+    config.clientSecret && config.clientId !== BUILT_IN_CLIENT_ID,
+  );
   elements.clientSecret.placeholder = state.hasClientSecret
     ? "Saved secret (leave blank to keep)"
     : "Optional client secret";
@@ -313,6 +316,7 @@ async function saveOauth() {
   const clientId = elements.clientId.value.trim();
   const clientSecret = elements.clientSecret.value;
   const redirectUri = elements.redirectUri.value.trim();
+  const usesBuiltInClient = !clientId || clientId === BUILT_IN_CLIENT_ID;
 
   if (!clientId && clientSecret) {
     showToast("error", "A client secret requires a Nuheat client ID.");
@@ -321,24 +325,25 @@ async function saveOauth() {
   }
 
   const patch = {
-    clientId: clientId || undefined,
+    clientId: usesBuiltInClient ? undefined : clientId,
     redirectUri: redirectUri && redirectUri !== "http://localhost" ? redirectUri : undefined,
   };
 
-  if (clientSecret) {
+  if (clientSecret && !usesBuiltInClient) {
     patch.clientSecret = clientSecret;
-  } else if (!clientId || clientId !== (state.config?.clientId || "")) {
+  } else if (usesBuiltInClient || clientId !== (state.config?.clientId || "")) {
     patch.clientSecret = undefined;
   }
 
   await persistPatch(patch);
-  if (clientSecret) {
-    state.hasClientSecret = true;
-    elements.clientSecret.value = "";
-    elements.clientSecret.placeholder = "Saved secret (leave blank to keep)";
-    updateStatuses();
-    renderDiagnostics();
-  }
+  state.hasClientSecret = Boolean(state.config?.clientSecret);
+  elements.clientId.value = state.config?.clientId || "";
+  elements.clientSecret.value = "";
+  elements.clientSecret.placeholder = state.hasClientSecret
+    ? "Saved secret (leave blank to keep)"
+    : "Optional client secret";
+  updateStatuses();
+  renderDiagnostics();
   showToast("success", "OAuth settings saved.");
 }
 
@@ -437,8 +442,9 @@ function updateBehaviorStatus() {
 }
 
 function updateOauthStatus() {
-  const hasClientId = elements.clientId.value.trim().length > 0;
-  const hasClientSecret = hasUsableClientSecret(elements.clientId.value.trim());
+  const clientId = elements.clientId.value.trim();
+  const hasClientId = clientId.length > 0 && clientId !== BUILT_IN_CLIENT_ID;
+  const hasClientSecret = hasUsableClientSecret(clientId);
   const text = hasClientId
     ? hasClientSecret
       ? "Custom legacy OAuth"
@@ -448,6 +454,10 @@ function updateOauthStatus() {
 }
 
 function hasUsableClientSecret(clientId) {
+  if (!clientId || clientId === BUILT_IN_CLIENT_ID) {
+    return false;
+  }
+
   if (elements.clientSecret.value) {
     return true;
   }
@@ -577,13 +587,16 @@ function getHoldSummary(value) {
 }
 
 function getOauthMode(config) {
+  if (!config.clientId || config.clientId === BUILT_IN_CLIENT_ID) {
+    return "built-in PKCE public client";
+  }
+
   if (config.clientId && hasUsableClientSecret(config.clientId)) {
     return "configured confidential client";
   }
   if (config.clientId) {
     return "configured PKCE public client";
   }
-  return "built-in PKCE public client";
 }
 
 function normalizeHoldLength(value) {

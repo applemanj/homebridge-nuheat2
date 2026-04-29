@@ -4,6 +4,13 @@ All notable changes to this project should be documented in this file
 
 ## [Unreleased]
 
+## [1.2.17] - 2026-04-29
+
+### Fixed
+
+- Treat the built-in Nuheat public client ID as PKCE-only even when it is explicitly saved in Advanced OAuth settings
+- Ignore and clear stale saved client secrets when users return to the built-in PKCE public client
+
 ## [1.2.16] - 2026-04-29
 
 ### Changed

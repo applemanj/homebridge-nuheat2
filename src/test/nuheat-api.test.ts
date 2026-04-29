@@ -54,6 +54,20 @@ test("built-in public client ignores stale secrets without custom client ID", ()
   });
 });
 
+test("explicit built-in public client ID still uses PKCE and ignores stale secrets", () => {
+  withCleanNuheatEnv(() => {
+    const api = new NuHeatAPI("user@example.com", "password", createLogStub(), {
+      clientId: "homebridge-nuheat2_260421",
+      clientSecret: "stale-secret",
+    });
+
+    assert.equal(api.oauthClientId, "homebridge-nuheat2_260421");
+    assert.equal(api.oauthClientSecret, "");
+    assert.equal(api.usePkce, true);
+    assert.equal(api.usingBuiltInClient, true);
+  });
+});
+
 test("PKCE code challenge follows the S256 base64url transform", () => {
   const api = new NuHeatAPI("user@example.com", "password", createLogStub(), {
     clientId: "public-client",

@@ -49,6 +49,18 @@ function restoreEnv(key, value) {
         strict_1.default.equal(api.usePkce, true);
     });
 });
+(0, node_test_1.default)("explicit built-in public client ID still uses PKCE and ignores stale secrets", () => {
+    withCleanNuheatEnv(() => {
+        const api = new NuHeatAPI("user@example.com", "password", (0, helpers_1.createLogStub)(), {
+            clientId: "homebridge-nuheat2_260421",
+            clientSecret: "stale-secret",
+        });
+        strict_1.default.equal(api.oauthClientId, "homebridge-nuheat2_260421");
+        strict_1.default.equal(api.oauthClientSecret, "");
+        strict_1.default.equal(api.usePkce, true);
+        strict_1.default.equal(api.usingBuiltInClient, true);
+    });
+});
 (0, node_test_1.default)("PKCE code challenge follows the S256 base64url transform", () => {
     const api = new NuHeatAPI("user@example.com", "password", (0, helpers_1.createLogStub)(), {
         clientId: "public-client",
