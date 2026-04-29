@@ -15,6 +15,7 @@ This project builds on the original [`senorshaun/homebridge-nuheat`](https://git
 - Optionally creates HomeKit switches for Nuheat group away mode
 - Supports permanent, scheduled, and timed holds
 - Uses Nuheat's OAuth-based API instead of legacy site scraping
+- Uses the official Nuheat PKCE public client by default, with no distributable client secret
 - Includes compatibility improvements for Homebridge 1.8+ and 2.0 betas
 - Can optionally expose a schedule switch for each thermostat
 - Allows advanced OAuth overrides for long-term API stability
@@ -89,8 +90,8 @@ The equivalent JSON looks like this:
 - `refresh`: Poll interval in seconds, default `60`. Values lower than `30` are raised to `30` to reduce API traffic
 - `enableNotifications`: Enables Nuheat SignalR notifications for faster updates. Defaults to `true`; set to `false` only while troubleshooting
 - `debug`: Enables verbose Nuheat API, notification, and accessory logging. Defaults to `false`
-- `clientId`: Optional advanced override for the Nuheat OAuth client ID. Current releases require this to be paired with `clientSecret`; PKCE public-client support is planned but is not active yet
-- `clientSecret`: Optional legacy OAuth client secret override for confidential-client credentials. Required with a custom `clientId` until PKCE support ships. Do not publish or share this value
+- `clientId`: Optional advanced override for the Nuheat OAuth client ID. Leave blank to use the built-in PKCE public client ID, `homebridge-nuheat2_260421`
+- `clientSecret`: Optional legacy OAuth client secret override for confidential-client credentials. Leave blank for the PKCE public-client flow. Do not publish or share this value
 - `redirectUri`: Optional advanced override for the Nuheat OAuth redirect URI, default `http://localhost`
 
 ### Hold Length Behavior
@@ -114,7 +115,9 @@ Nuheat's public OpenAPI documentation indicates that third-party developers shou
 - [Nuheat OpenAPI docs](https://api.mynuheat.com/)
 - [Nuheat API access request page](https://www.nuheat.com/openapi)
 
-This fork still supports the legacy built-in OAuth client settings as a fallback. Nuheat is expected to issue a PKCE-based public client for this integration so the plugin can eventually ship with a public `clientId` without distributing a client secret. Until that migration is complete, keep any issued `clientSecret` out of GitHub, npm, screenshots, and shared logs.
+This fork uses Nuheat's PKCE-based public client for normal authentication. The built-in public `clientId` is `homebridge-nuheat2_260421`; there is no distributable client secret.
+
+Legacy confidential-client credentials can still be supplied with `clientId` and `clientSecret` for testing alternate Nuheat-issued clients. Keep any `clientSecret` out of GitHub, npm, screenshots, and shared logs.
 
 ## What's New In This Fork
 
@@ -173,7 +176,6 @@ After that, bump the version in `package.json`, push to `master`, and GitHub Act
 
 ## Future Work
 
-- Validate the plugin against the official Nuheat API credentials requested for this integration.
-- Move the normal OAuth path to Nuheat's PKCE-based public client once the new client details are issued.
+- Validate the PKCE public-client flow against more real-world Nuheat accounts.
 - Verify group and away-mode behavior against current live API responses.
 - Evaluate whether SignalR notifications can reduce polling further in real-world deployments.

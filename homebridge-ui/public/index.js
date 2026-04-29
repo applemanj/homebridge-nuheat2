@@ -320,15 +320,6 @@ async function saveOauth() {
     return;
   }
 
-  if (clientId && !hasUsableClientSecret(clientId) && !clientSecret) {
-    showToast(
-      "error",
-      "Current OAuth overrides require a matching client ID and client secret.",
-    );
-    elements.clientSecret.focus();
-    return;
-  }
-
   const patch = {
     clientId: clientId || undefined,
     redirectUri: redirectUri && redirectUri !== "http://localhost" ? redirectUri : undefined,
@@ -336,7 +327,7 @@ async function saveOauth() {
 
   if (clientSecret) {
     patch.clientSecret = clientSecret;
-  } else if (!clientId) {
+  } else if (!clientId || clientId !== (state.config?.clientId || "")) {
     patch.clientSecret = undefined;
   }
 
@@ -450,10 +441,10 @@ function updateOauthStatus() {
   const hasClientSecret = hasUsableClientSecret(elements.clientId.value.trim());
   const text = hasClientId
     ? hasClientSecret
-      ? "Custom OAuth"
-      : "Secret needed"
-    : "Built-in fallback";
-  setStatus(elements.oauthStatus, hasClientId && hasClientSecret, text);
+      ? "Custom legacy OAuth"
+      : "Custom PKCE"
+    : "Built-in PKCE";
+  setStatus(elements.oauthStatus, true, text);
 }
 
 function hasUsableClientSecret(clientId) {
@@ -590,9 +581,9 @@ function getOauthMode(config) {
     return "configured confidential client";
   }
   if (config.clientId) {
-    return "incomplete custom client";
+    return "configured PKCE public client";
   }
-  return "built-in fallback credentials";
+  return "built-in PKCE public client";
 }
 
 function normalizeHoldLength(value) {

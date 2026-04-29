@@ -125,13 +125,13 @@
       "clientId": {
         "title": "Nuheat Client ID",
         "type": "string",
-        "description": "Advanced OAuth override. Current releases require this to be paired with a clientSecret; PKCE public-client support is planned but not active yet."
+        "description": "Advanced OAuth override. Leave blank to use the built-in PKCE public client ID."
       },
       "clientSecret": {
         "title": "Nuheat Client Secret (Legacy)",
         "type": "string",
         "format": "password",
-        "description": "Advanced OAuth override for confidential-client credentials. Required with a custom clientId until PKCE support ships. Do not publish or share this value."
+        "description": "Legacy OAuth override for confidential-client credentials. Leave blank for the PKCE public-client flow. Do not publish or share this value."
       },
       "redirectUri": {
         "title": "Nuheat Redirect URI",
@@ -177,7 +177,7 @@
       "title": "Advanced OAuth",
       "expandable": true,
       "expanded": false,
-      "description": "Only change these fields when testing Nuheat-issued API credentials.",
+      "description": "Only change these fields when testing alternate Nuheat-issued API credentials.",
       "items": [
         "clientId",
         "clientSecret",

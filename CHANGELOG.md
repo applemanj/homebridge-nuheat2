@@ -4,6 +4,13 @@ All notable changes to this project should be documented in this file
 
 ## [Unreleased]
 
+## [1.2.16] - 2026-04-29
+
+### Changed
+
+- Switch the built-in Nuheat OAuth client to Authorization Code with PKCE using the public `homebridge-nuheat2_260421` client ID
+- Keep legacy confidential-client OAuth overrides available when a custom `clientSecret` is explicitly configured
+
 ## [1.2.15] - 2026-04-27
 
 ### Fixed

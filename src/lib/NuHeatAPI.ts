@@ -14,6 +14,7 @@ const HeadersCtor = fetchModule.Headers;
 const isRedirect = fetchModule.isRedirect;
 const { parse } = htmlParser;
 
+import { createHash, randomBytes } from "node:crypto";
 import {
   NUHEAT_API_AUTHORIZE_URI,
   NUHEAT_API_CLIENT_ID,
@@ -88,7 +89,9 @@ class NuHeatAPI {
   oauthClientId: string;
   oauthClientSecret: string;
   oauthRedirectUri: string;
-  usingFallbackCredentials: boolean;
+  usingBuiltInClient: boolean;
+  usePkce: boolean;
+  pkceCodeVerifier: string;
   headers: HeadersLike;
   accessToken: string | null;
   accessTokenTimestamp: number;
@@ -106,23 +109,21 @@ class NuHeatAPI {
     this.email = email;
     this.password = password;
     this.log = log;
-    this.oauthClientId =
-      options.clientId ||
-      process.env.NUHEAT_API_CLIENT_ID ||
-      NUHEAT_API_CLIENT_ID;
-    this.oauthClientSecret =
-      options.clientSecret ||
-      process.env.NUHEAT_API_CLIENT_SECRET ||
-      NUHEAT_API_CLIENT_SECRET;
+    const configuredClientId =
+      options.clientId || process.env.NUHEAT_API_CLIENT_ID || "";
+    const configuredClientSecret =
+      options.clientSecret || process.env.NUHEAT_API_CLIENT_SECRET || "";
+    this.oauthClientId = configuredClientId || NUHEAT_API_CLIENT_ID;
+    this.oauthClientSecret = configuredClientId
+      ? configuredClientSecret || NUHEAT_API_CLIENT_SECRET
+      : "";
     this.oauthRedirectUri =
       options.redirectUri ||
       process.env.NUHEAT_API_REDIRECT_URI ||
       NUHEAT_API_REDIRECT_URI;
-    this.usingFallbackCredentials =
-      !options.clientId &&
-      !process.env.NUHEAT_API_CLIENT_ID &&
-      !options.clientSecret &&
-      !process.env.NUHEAT_API_CLIENT_SECRET;
+    this.usingBuiltInClient = !configuredClientId;
+    this.usePkce = !this.oauthClientSecret;
+    this.pkceCodeVerifier = "";
     this.headers = new HeadersCtor();
     this.headers.set("Content-Type", "application/json");
     this.headers.set("Accept", "application/json");
@@ -133,9 +134,11 @@ class NuHeatAPI {
     this.tokenScope = "";
     this.tokenType = "Bearer";
 
-    if (this.usingFallbackCredentials) {
-      this.log.warn(
-        "NuHeatAPI: Using built-in OAuth client credentials. Request your own Nuheat API client for long-term reliability.",
+    if (this.usingBuiltInClient) {
+      this.log.info(
+        "NuHeatAPI: Using built-in Nuheat PKCE public client ID " +
+          this.oauthClientId +
+          ".",
       );
     } else {
       this.log.info(
@@ -147,12 +150,56 @@ class NuHeatAPI {
       "NuHeatAPI: OAuth redirect URI " +
         this.oauthRedirectUri +
         ". Requested scopes: " +
-        this.getRequestedScope(),
+        this.getRequestedScope() +
+        ". OAuth flow: " +
+        (this.usePkce ? "authorization_code_pkce" : "authorization_code_secret"),
     );
   }
 
   getRequestedScope(): string {
     return OAUTH_SCOPES.join(" ");
+  }
+
+  generatePkceCodeVerifier(): string {
+    return randomBytes(64).toString("base64url");
+  }
+
+  getPkceCodeChallenge(codeVerifier: string): string {
+    return createHash("sha256").update(codeVerifier).digest("base64url");
+  }
+
+  buildAuthorizationCodeTokenRequest(redirectUrl: URL): URLSearchParams {
+    const requestBody = new URLSearchParams({
+      client_id: this.oauthClientId,
+      code: redirectUrl.searchParams.get("code") || "",
+      grant_type: "authorization_code",
+      redirect_uri: this.oauthRedirectUri,
+      scope: redirectUrl.searchParams.get("scope") || "",
+    });
+
+    if (this.usePkce) {
+      requestBody.set("code_verifier", this.pkceCodeVerifier);
+    } else {
+      requestBody.set("client_secret", this.oauthClientSecret);
+    }
+
+    return requestBody;
+  }
+
+  buildRefreshTokenRequest(): URLSearchParams {
+    const requestBody = new URLSearchParams({
+      client_id: this.oauthClientId,
+      grant_type: "refresh_token",
+      refresh_token: this.refreshToken,
+      scope: this.tokenScope,
+    });
+
+    if (!this.usePkce) {
+      requestBody.set("client_secret", this.oauthClientSecret);
+      requestBody.set("redirect_uri", this.oauthRedirectUri);
+    }
+
+    return requestBody;
   }
 
   async setAwayMode(groupId: number, awayMode: boolean): Promise<any> {
@@ -375,10 +422,19 @@ class NuHeatAPI {
     authEndpoint.searchParams.set("client_id", this.oauthClientId);
     authEndpoint.searchParams.set("redirect_uri", this.oauthRedirectUri);
     authEndpoint.searchParams.set("scope", this.getRequestedScope());
+    if (this.usePkce) {
+      this.pkceCodeVerifier = this.generatePkceCodeVerifier();
+      authEndpoint.searchParams.set(
+        "code_challenge",
+        this.getPkceCodeChallenge(this.pkceCodeVerifier),
+      );
+      authEndpoint.searchParams.set("code_challenge_method", "S256");
+    }
 
     this.log.debug(
       "NuHeatAPI: Requesting OAuth authorization page with scopes: " +
-        this.getRequestedScope(),
+        this.getRequestedScope() +
+        (this.usePkce ? " using PKCE." : "."),
     );
 
     const response = await this.fetch(authEndpoint.toString(), {
@@ -601,14 +657,7 @@ class NuHeatAPI {
 
       const redirectUrl = new URL(response.headers.get("location") || "");
 
-      const requestBody = new URLSearchParams({
-        client_id: this.oauthClientId,
-        client_secret: this.oauthClientSecret,
-        code: redirectUrl.searchParams.get("code") || "",
-        grant_type: "authorization_code",
-        redirect_uri: this.oauthRedirectUri,
-        scope: redirectUrl.searchParams.get("scope") || "",
-      });
+      const requestBody = this.buildAuthorizationCodeTokenRequest(redirectUrl);
 
       response = await this.fetch(NUHEAT_API_TOKEN_URI, {
         body: requestBody.toString(),
@@ -638,14 +687,7 @@ class NuHeatAPI {
   }
 
   async getRefreshedAccessToken(): Promise<boolean> {
-    const requestBody = new URLSearchParams({
-      client_id: this.oauthClientId,
-      client_secret: this.oauthClientSecret,
-      grant_type: "refresh_token",
-      redirect_uri: this.oauthRedirectUri,
-      refresh_token: this.refreshToken,
-      scope: this.tokenScope,
-    });
+    const requestBody = this.buildRefreshTokenRequest();
 
     const response = await this.fetch(NUHEAT_API_TOKEN_URI, {
       body: requestBody.toString(),

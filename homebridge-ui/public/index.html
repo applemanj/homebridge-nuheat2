@@ -173,19 +173,21 @@
       <div>
         <h2>Advanced OAuth</h2>
         <p class="help">
-          Leave these fields blank unless Nuheat has issued confidential-client
-          credentials for testing. PKCE public-client support is planned but is
-          not active yet.
+          Leave these fields blank to use the built-in Nuheat PKCE public
+          client. Only change them when testing alternate Nuheat-issued API
+          credentials.
         </p>
       </div>
-      <span id="oauth-status" class="status-pill warn">Built-in fallback</span>
+      <span id="oauth-status" class="status-pill good">Built-in PKCE</span>
     </div>
 
     <div class="settings-grid">
       <label class="field">
         <span>Nuheat Client ID</span>
         <input id="client-id" type="text" placeholder="Optional client ID" />
-        <small>Advanced override for a Nuheat-issued OAuth client ID.</small>
+        <small>
+          Advanced override. Blank uses homebridge-nuheat2_260421.
+        </small>
       </label>
 
       <label id="client-secret-row" class="field">
@@ -196,8 +198,8 @@
           placeholder="Leave blank to keep existing"
         />
         <small>
-          Required with a custom client ID until PKCE support ships. Do not
-          publish or share this value.
+          Leave blank for PKCE public-client auth. Only use this for legacy
+          confidential-client credentials.
         </small>
       </label>
 

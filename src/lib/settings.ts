@@ -1,7 +1,6 @@
-export const NUHEAT_API_CLIENT_ID = "homebridge-nuheat";
+export const NUHEAT_API_CLIENT_ID = "homebridge-nuheat2_260421";
 
-export const NUHEAT_API_CLIENT_SECRET =
-  "PkYnj7yq6b3r1H4PN/gehP7NPvSMCzTIXerRx0ZZpsE=";
+export const NUHEAT_API_CLIENT_SECRET = "";
 
 export const NUHEAT_API_REDIRECT_URI = "http://localhost";
 
