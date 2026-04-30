@@ -5,9 +5,7 @@
 
 Homebridge platform plugin for Nuheat Signature floor-heating thermostats.
 
-This fork focuses on modernizing the plugin for current Homebridge releases, improving runtime stability, and preparing for Homebridge 2.0 while keeping the existing `NuHeat` platform configuration intact.
-
-This project builds on the original [`senorshaun/homebridge-nuheat`](https://github.com/senorshaun/homebridge-nuheat) plugin and retains attribution for Shaun's original work.
+This maintained fork modernizes Nuheat support for current Homebridge releases while keeping the existing `NuHeat` platform configuration intact for backward compatibility. It builds on Shaun's original [`senorshaun/homebridge-nuheat`](https://github.com/senorshaun/homebridge-nuheat) plugin.
 
 ## Highlights
 
@@ -44,7 +42,7 @@ The published package name for this maintained fork is `homebridge-nuheat2`. The
 
 ## Configuration
 
-Most users should configure the plugin through the custom Homebridge admin UI. It is organized into Account, Accessories, Behavior, and Diagnostics panels and writes the same config keys shown below.
+Most users should configure the plugin through the custom Homebridge admin UI. It is organized into Account, Accessories, Behavior, and Diagnostics panels.
 
 Sensitive values are handled deliberately: saved passwords are not redisplayed in the UI. Leave the password field blank to keep the saved value, or enter a new value to replace it.
 
@@ -106,29 +104,23 @@ If `exposeScheduleSwitches` is enabled, the plugin will also create one switch p
 
 ## Nuheat API Access
 
-Nuheat's public OpenAPI documentation indicates that third-party developers should request their own API credentials:
+This plugin uses Nuheat's PKCE-based public client for normal authentication. The built-in public `clientId` is `homebridge-nuheat2_260421`; there is no distributable client secret and no user API key setup is required.
+
+References:
 
 - [Nuheat OpenAPI docs](https://api.mynuheat.com/)
 - [Nuheat API access request page](https://www.nuheat.com/openapi)
 
-This fork uses Nuheat's PKCE-based public client for normal authentication. The built-in public `clientId` is `homebridge-nuheat2_260421`; there is no distributable client secret and no API key setup is required.
+## Troubleshooting
 
-## What's New In This Fork
-
-- Fixed the manual-mode thermostat issue where HomeKit could immediately snap back to `Off`
-- Hardened online-state parsing and general accessory refresh behavior
-- Delayed platform startup until Homebridge finishes restoring cached accessories
-- Improved SignalR reconnect handling
-- Added regression tests for the key thermostat behavior fixes
-- Updated package metadata and dependency overrides for a cleaner modern release
-- Published under the maintainer-owned package identity `homebridge-nuheat2`
-- Added Swagger-aligned account, schedule, and energy API helpers for future enhancements
+- Enable debug logging from the custom UI only while troubleshooting. Debug logs include detailed Nuheat API, notification, and accessory activity.
+- If accessories do not appear after changing allow-lists, save the settings and restart the Nuheat child bridge.
+- If login fails, confirm the same email and password work in the Nuheat app or web portal.
+- If Homebridge shows stale UI fields after an update, close and reopen the plugin settings page.
 
 ## Development
 
-The TypeScript migration is now underway for the core runtime. The source of truth for the platform, API client, accessories, internal models, and tests lives under `src/`, and `npm run build` compiles that back into the existing CommonJS layout used by Homebridge (`index.js`, `lib/`, and `test/`).
-
-This keeps the published plugin layout stable while we migrate incrementally instead of doing a risky one-shot rewrite.
+The source of truth for the platform, API client, accessories, internal models, and tests lives under `src/`. The build compiles that back into the CommonJS layout used by Homebridge: `index.js`, `lib/`, and `test/`.
 
 Common development commands:
 
@@ -143,30 +135,11 @@ Run the test suite with:
 npm test
 ```
 
-## Release Automation
+Contributor and release notes are in [CONTRIBUTING.md](CONTRIBUTING.md).
 
-GitHub Actions now handles two jobs for this repository:
+## Attribution
 
-- `.github/workflows/ci.yml` runs `npm ci`, `npm run typecheck`, and `npm test` on pushes and pull requests across Node 20, 22, and 24
-- `.github/workflows/publish.yml` runs on pushes to `master` when `package.json` changes, re-runs the checks on Node 24, publishes to npm only when the `package.json` version is not already on the registry, and creates or updates the matching GitHub Release
-
-The publish workflow also maps prerelease versions to npm dist-tags automatically. For example, `1.2.7-beta.1` publishes with the `beta` tag, while stable versions publish to `latest`.
-
-Release notes are expected in `docs/release-notes/<version>.md`. The publish workflow will fail if that file is missing for the version in `package.json`, which makes the GitHub Release step part of the normal release checklist instead of a manual follow-up.
-
-### Recommended npm Setup
-
-Use npm trusted publishing rather than a long-lived automation token.
-
-1. Open the `homebridge-nuheat2` package settings on npm.
-2. Add a trusted publisher for GitHub Actions.
-3. Configure:
-   - Organization or user: `applemanj`
-   - Repository: `homebridge-nuheat2`
-   - Workflow filename: `publish.yml`
-4. Keep the workflow on GitHub-hosted runners.
-
-After that, bump the version in `package.json`, push to `master`, and GitHub Actions will publish the new version automatically once the checks pass.
+This project is maintained by `applemanj` and retains attribution to SenorShaun for the original MIT-licensed Homebridge Nuheat plugin.
 
 ## Future Work
 

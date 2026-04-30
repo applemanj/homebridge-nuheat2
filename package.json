@@ -1,6 +1,6 @@
 {
   "name": "homebridge-nuheat2",
-  "version": "1.2.19",
+  "version": "1.2.20",
   "description": "Homebridge Platform for NuHeat Signature Thermostats",
   "main": "index.js",
   "scripts": {
@@ -51,6 +51,7 @@
     "homebridge-ui",
     "config.schema.json",
     "README.md",
+    "CONTRIBUTING.md",
     "CHANGELOG.md"
   ],
   "devDependencies": {
