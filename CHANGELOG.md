@@ -4,6 +4,12 @@ All notable changes to this project should be documented in this file
 
 ## [Unreleased]
 
+## [1.2.19] - 2026-04-30
+
+### Fixed
+
+- Make saved thermostat and group allow-list values readable and easier to edit in the custom admin UI
+
 ## [1.2.18] - 2026-04-29
 
 ### Changed

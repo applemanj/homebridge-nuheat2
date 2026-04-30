@@ -124,8 +124,8 @@ select {
   width: 100%;
   min-height: 38px;
   padding: 0.45rem 0.75rem;
-  color: inherit;
-  background: var(--bs-body-bg, var(--plugin-control-surface));
+  color: currentColor;
+  background-color: var(--plugin-control-surface);
   border: 1px solid var(--plugin-border);
   border-radius: 0.375rem;
   font-family: var(--plugin-font-family);
@@ -293,9 +293,9 @@ button.secondary:hover {
 
 .config-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: 1fr;
   gap: 10px;
-  align-items: end;
+  align-items: stretch;
   background: var(--plugin-control-surface);
   border: 1px solid var(--plugin-border);
   border-radius: 8px;
@@ -304,6 +304,12 @@ button.secondary:hover {
 
 .config-row .field {
   min-width: 0;
+}
+
+.config-row .row-actions {
+  justify-content: flex-start;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 .row-checkbox {
