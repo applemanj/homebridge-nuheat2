@@ -4,6 +4,14 @@ All notable changes to this project should be documented in this file
 
 ## [Unreleased]
 
+## [1.2.18] - 2026-04-29
+
+### Changed
+
+- Remove user-facing Advanced OAuth settings from the Homebridge schema, custom UI, and README now that Nuheat provides a built-in PKCE public client for this plugin
+- Remove the editable Platform Name field from the custom admin UI while keeping the config key supported for backward compatibility
+- Improve Accessories allow-list rendering so saved thermostat and group rows are normalized and displayed as clearly editable rows
+
 ## [1.2.17] - 2026-04-29
 
 ### Fixed

@@ -1,8 +1,6 @@
 const PLATFORM_NAME = "NuHeat";
-const BUILT_IN_CLIENT_ID = "homebridge-nuheat2_260421";
 
 const elements = {
-  name: document.getElementById("name"),
   email: document.getElementById("email"),
   password: document.getElementById("password"),
   devicesList: document.getElementById("devices-list"),
@@ -15,20 +13,14 @@ const elements = {
   refresh: document.getElementById("refresh"),
   enableNotifications: document.getElementById("enable-notifications"),
   debug: document.getElementById("debug"),
-  clientId: document.getElementById("client-id"),
-  clientSecret: document.getElementById("client-secret"),
-  redirectUri: document.getElementById("redirect-uri"),
   saveAccount: document.getElementById("save-account"),
   addDevice: document.getElementById("add-device"),
   addGroup: document.getElementById("add-group"),
   saveAccessories: document.getElementById("save-accessories"),
   saveBehavior: document.getElementById("save-behavior"),
-  saveOauth: document.getElementById("save-oauth"),
-  clearOauth: document.getElementById("clear-oauth"),
   authStatus: document.getElementById("auth-status"),
   accessoryStatus: document.getElementById("accessory-status"),
   behaviorStatus: document.getElementById("behavior-status"),
-  oauthStatus: document.getElementById("oauth-status"),
   toastContainer: document.getElementById("toast-container"),
   refreshDiagnostics: document.getElementById("refresh-diagnostics"),
   diagnosticsSummary: document.getElementById("diagnostics-summary"),
@@ -40,7 +32,6 @@ const state = {
   configs: [],
   config: null,
   hasPassword: false,
-  hasClientSecret: false,
 };
 
 function showToast(type, message) {
@@ -118,7 +109,6 @@ function createDefaultConfig() {
 }
 
 function renderConfig(config) {
-  elements.name.value = config.name || "NuHeat";
   elements.email.value = config.email || config.Email || "";
   elements.password.value = "";
   state.hasPassword = Boolean(config.password);
@@ -138,27 +128,13 @@ function renderConfig(config) {
   elements.enableNotifications.checked = config.enableNotifications !== false;
   elements.debug.checked = Boolean(config.debug);
 
-  elements.clientId.value = config.clientId || "";
-  elements.clientSecret.value = "";
-  state.hasClientSecret = Boolean(
-    config.clientSecret && config.clientId !== BUILT_IN_CLIENT_ID,
-  );
-  elements.clientSecret.placeholder = state.hasClientSecret
-    ? "Saved secret (leave blank to keep)"
-    : "Optional client secret";
-  elements.redirectUri.value = config.redirectUri || "http://localhost";
-
   updateStatuses();
   renderDiagnostics();
 }
 
 function renderRows(container, type, items) {
   container.innerHTML = "";
-  const normalizedItems = Array.isArray(items) ? items : [];
-  const visibleItems = normalizedItems.filter((item) => {
-    const value = type === "device" ? item.serialNumber : item.groupName;
-    return typeof value === "string" && value.trim().length > 0;
-  });
+  const visibleItems = normalizeConfigRows(type, items);
 
   if (visibleItems.length === 0) {
     const empty = document.createElement("div");
@@ -175,10 +151,42 @@ function renderRows(container, type, items) {
     addRow(
       container,
       type,
-      type === "device" ? item.serialNumber : item.groupName,
-      Boolean(item.disabled),
+      item.value,
+      item.disabled,
     );
   });
+}
+
+function normalizeConfigRows(type, items) {
+  const normalizedItems = Array.isArray(items) ? items : [];
+  return normalizedItems
+    .map((item) => ({
+      value: getConfigRowValue(type, item),
+      disabled: typeof item === "object" && item !== null
+        ? Boolean(item.disabled)
+        : false,
+    }))
+    .filter((item) => item.value.length > 0);
+}
+
+function getConfigRowValue(type, item) {
+  if (typeof item === "string" || typeof item === "number") {
+    return String(item).trim();
+  }
+
+  if (!item || typeof item !== "object") {
+    return "";
+  }
+
+  const keys = type === "device"
+    ? ["serialNumber", "SerialNumber", "serial", "Serial", "deviceId", "DeviceId"]
+    : ["groupName", "GroupName", "name", "Name"];
+
+  const value = keys
+    .map((key) => item[key])
+    .find((candidate) => typeof candidate === "string" || typeof candidate === "number");
+
+  return value === undefined ? "" : String(value).trim();
 }
 
 function addRow(container, type, value = "", disabled = false) {
@@ -246,7 +254,6 @@ function collectRows(container, key) {
 }
 
 async function saveAccount() {
-  const name = elements.name.value.trim() || "NuHeat";
   const email = elements.email.value.trim();
   const password = elements.password.value;
 
@@ -264,7 +271,6 @@ async function saveAccount() {
 
   const patch = {
     platform: PLATFORM_NAME,
-    name,
     email,
     Email: undefined,
   };
@@ -312,57 +318,6 @@ async function saveBehavior() {
   showToast("success", "Behavior settings saved.");
 }
 
-async function saveOauth() {
-  const clientId = elements.clientId.value.trim();
-  const clientSecret = elements.clientSecret.value;
-  const redirectUri = elements.redirectUri.value.trim();
-  const usesBuiltInClient = !clientId || clientId === BUILT_IN_CLIENT_ID;
-
-  if (!clientId && clientSecret) {
-    showToast("error", "A client secret requires a Nuheat client ID.");
-    elements.clientId.focus();
-    return;
-  }
-
-  const patch = {
-    clientId: usesBuiltInClient ? undefined : clientId,
-    redirectUri: redirectUri && redirectUri !== "http://localhost" ? redirectUri : undefined,
-  };
-
-  if (clientSecret && !usesBuiltInClient) {
-    patch.clientSecret = clientSecret;
-  } else if (usesBuiltInClient || clientId !== (state.config?.clientId || "")) {
-    patch.clientSecret = undefined;
-  }
-
-  await persistPatch(patch);
-  state.hasClientSecret = Boolean(state.config?.clientSecret);
-  elements.clientId.value = state.config?.clientId || "";
-  elements.clientSecret.value = "";
-  elements.clientSecret.placeholder = state.hasClientSecret
-    ? "Saved secret (leave blank to keep)"
-    : "Optional client secret";
-  updateStatuses();
-  renderDiagnostics();
-  showToast("success", "OAuth settings saved.");
-}
-
-async function clearOauth() {
-  await persistPatch({
-    clientId: undefined,
-    clientSecret: undefined,
-    redirectUri: undefined,
-  });
-  state.hasClientSecret = false;
-  elements.clientId.value = "";
-  elements.clientSecret.value = "";
-  elements.clientSecret.placeholder = "Optional client secret";
-  elements.redirectUri.value = "http://localhost";
-  updateStatuses();
-  renderDiagnostics();
-  showToast("success", "OAuth overrides cleared.");
-}
-
 async function persistPatch(patch) {
   await withSpinner(async () => {
     if (!state.config) {
@@ -395,7 +350,6 @@ function updateStatuses() {
   updateAuthStatus();
   updateAccessoryStatus();
   updateBehaviorStatus();
-  updateOauthStatus();
 }
 
 function updateAuthStatus() {
@@ -441,31 +395,6 @@ function updateBehaviorStatus() {
   );
 }
 
-function updateOauthStatus() {
-  const clientId = elements.clientId.value.trim();
-  const hasClientId = clientId.length > 0 && clientId !== BUILT_IN_CLIENT_ID;
-  const hasClientSecret = hasUsableClientSecret(clientId);
-  const text = hasClientId
-    ? hasClientSecret
-      ? "Custom legacy OAuth"
-      : "Custom PKCE"
-    : "Built-in PKCE";
-  setStatus(elements.oauthStatus, true, text);
-}
-
-function hasUsableClientSecret(clientId) {
-  if (!clientId || clientId === BUILT_IN_CLIENT_ID) {
-    return false;
-  }
-
-  if (elements.clientSecret.value) {
-    return true;
-  }
-
-  const savedClientId = state.config?.clientId || "";
-  return Boolean(clientId && state.hasClientSecret && clientId === savedClientId);
-}
-
 function setStatus(element, isGood, text) {
   element.textContent = text;
   element.classList.toggle("good", Boolean(isGood));
@@ -488,10 +417,9 @@ function renderDiagnostics() {
 
   addDiagnosticCard("Account", [
     ["Platform", PLATFORM_NAME],
-    ["Name", config.name || "NuHeat"],
     ["Email", config.email || "not configured"],
     ["Password", state.hasPassword || elements.password.value ? "saved" : "missing"],
-    ["OAuth Mode", getOauthMode(config)],
+    ["API Access", "built-in Nuheat PKCE client"],
   ]);
 
   addDiagnosticCard("Accessories", [
@@ -537,7 +465,6 @@ function addDiagnosticCard(title, rows) {
 function getDraftConfig() {
   return {
     ...(state.config || createDefaultConfig()),
-    name: elements.name.value.trim() || "NuHeat",
     email: elements.email.value.trim(),
     devices: collectRows(elements.devicesList, "serialNumber"),
     groups: collectRows(elements.groupsList, "groupName"),
@@ -549,8 +476,6 @@ function getDraftConfig() {
     refresh: normalizeRefresh(elements.refresh.value),
     enableNotifications: Boolean(elements.enableNotifications.checked),
     debug: Boolean(elements.debug.checked),
-    clientId: elements.clientId.value.trim(),
-    redirectUri: elements.redirectUri.value.trim() || "http://localhost",
   };
 }
 
@@ -584,19 +509,6 @@ function getHoldSummary(value) {
     return "permanent hold";
   }
   return `${holdLength} minute timed hold`;
-}
-
-function getOauthMode(config) {
-  if (!config.clientId || config.clientId === BUILT_IN_CLIENT_ID) {
-    return "built-in PKCE public client";
-  }
-
-  if (config.clientId && hasUsableClientSecret(config.clientId)) {
-    return "configured confidential client";
-  }
-  if (config.clientId) {
-    return "configured PKCE public client";
-  }
 }
 
 function normalizeHoldLength(value) {
@@ -640,12 +552,6 @@ function bindEvents() {
   elements.saveBehavior.addEventListener("click", () => {
     saveBehavior().catch(() => showToast("error", "Failed to save behavior."));
   });
-  elements.saveOauth.addEventListener("click", () => {
-    saveOauth().catch(() => showToast("error", "Failed to save OAuth settings."));
-  });
-  elements.clearOauth.addEventListener("click", () => {
-    clearOauth().catch(() => showToast("error", "Failed to clear OAuth settings."));
-  });
   elements.addDevice.addEventListener("click", () => {
     addRow(elements.devicesList, "device");
   });
@@ -655,7 +561,6 @@ function bindEvents() {
   elements.refreshDiagnostics.addEventListener("click", renderDiagnostics);
 
   [
-    elements.name,
     elements.email,
     elements.password,
     elements.autoPopulateAwayModeSwitches,
@@ -664,9 +569,6 @@ function bindEvents() {
     elements.refresh,
     elements.enableNotifications,
     elements.debug,
-    elements.clientId,
-    elements.clientSecret,
-    elements.redirectUri,
   ].forEach((element) => {
     element.addEventListener("input", () => {
       updateStatuses();

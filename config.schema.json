@@ -121,23 +121,6 @@
         "type": "boolean",
         "default": false,
         "description": "Write detailed Nuheat API and accessory activity to the Homebridge log."
-      },
-      "clientId": {
-        "title": "Nuheat Client ID",
-        "type": "string",
-        "description": "Advanced OAuth override. Leave blank to use the built-in PKCE public client ID."
-      },
-      "clientSecret": {
-        "title": "Nuheat Client Secret (Legacy)",
-        "type": "string",
-        "format": "password",
-        "description": "Legacy OAuth override for confidential-client credentials. Leave blank for the PKCE public-client flow. Do not publish or share this value."
-      },
-      "redirectUri": {
-        "title": "Nuheat Redirect URI",
-        "type": "string",
-        "default": "http://localhost",
-        "description": "Advanced OAuth redirect URI. The default is http://localhost."
       }
     }
   },
@@ -170,18 +153,6 @@
         "refresh",
         "enableNotifications",
         "debug"
-      ]
-    },
-    {
-      "type": "fieldset",
-      "title": "Advanced OAuth",
-      "expandable": true,
-      "expanded": false,
-      "description": "Only change these fields when testing alternate Nuheat-issued API credentials.",
-      "items": [
-        "clientId",
-        "clientSecret",
-        "redirectUri"
       ]
     }
   ],
