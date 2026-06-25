@@ -1,6 +1,6 @@
 {
   "name": "homebridge-nuheat2",
-  "version": "1.2.20",
+  "version": "1.2.21",
   "description": "Homebridge Platform for NuHeat Signature Thermostats",
   "main": "index.js",
   "scripts": {
@@ -24,7 +24,11 @@
   "bugs": {
     "url": "https://github.com/applemanj/homebridge-nuheat2/issues"
   },
-  "author": "applemanj",
+  "author": {
+    "name": "Joshua Appleman",
+    "email": "joshua@appleman.us",
+    "url": "https://github.com/applemanj"
+  },
   "contributors": [
     "SenorShaun (original plugin author)"
   ],
