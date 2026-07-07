@@ -22,6 +22,7 @@ import {
   NUHEAT_API_CONSENT_URI,
   NUHEAT_API_REDIRECT_URI,
   NUHEAT_API_TOKEN_URI,
+  buildNuHeatApiUrl,
 } from "./settings";
 import {
   SCHEDULE_MODE,
@@ -205,7 +206,7 @@ class NuHeatAPI {
   }
 
   async setAwayMode(groupId: number, awayMode: boolean): Promise<any> {
-    const callURL = "https://api.mynuheat.com/api/v1/Group";
+    const callURL = buildNuHeatApiUrl("/api/v1/Group");
     const callOptions: FetchOptions = {
       body: JSON.stringify({
         groupId,
@@ -237,7 +238,7 @@ class NuHeatAPI {
       scheduleMode = SCHEDULE_MODE.AUTO;
     }
 
-    const callURL = "https://api.mynuheat.com/api/v1/Thermostat";
+    const callURL = buildNuHeatApiUrl("/api/v1/Thermostat");
     const callBody: Record<string, number | string> = {
       serialNumber,
       setPointTemp,
@@ -263,7 +264,7 @@ class NuHeatAPI {
   }
 
   async updateThermostat(thermostatUpdate: Record<string, unknown>): Promise<any> {
-    const callURL = "https://api.mynuheat.com/api/v1/Thermostat";
+    const callURL = buildNuHeatApiUrl("/api/v1/Thermostat");
     const callOptions: FetchOptions = {
       body: JSON.stringify(thermostatUpdate),
       method: "PUT",
@@ -275,12 +276,12 @@ class NuHeatAPI {
   }
 
   async refreshGroup(groupId: number): Promise<any> {
-    const callURL = "https://api.mynuheat.com/api/v1/Group/" + groupId;
+    const callURL = buildNuHeatApiUrl("/api/v1/Group/" + groupId);
     return await this.makeAPICall(callURL, {}, { normalize: normalizeGroup });
   }
 
   async refreshGroups(): Promise<any> {
-    const callURL = "https://api.mynuheat.com/api/v1/Group";
+    const callURL = buildNuHeatApiUrl("/api/v1/Group");
     return await this.makeAPICall(callURL, {}, {
       normalize: normalizeGroup,
       normalizeArray: true,
@@ -288,14 +289,14 @@ class NuHeatAPI {
   }
 
   async refreshThermostat(serialNumber: string): Promise<any> {
-    const callURL = "https://api.mynuheat.com/api/v1/Thermostat/" + serialNumber;
+    const callURL = buildNuHeatApiUrl("/api/v1/Thermostat/" + serialNumber);
     return await this.makeAPICall(callURL, {}, {
       normalize: normalizeThermostat,
     });
   }
 
   async refreshThermostats(): Promise<any> {
-    const callURL = "https://api.mynuheat.com/api/v1/Thermostat";
+    const callURL = buildNuHeatApiUrl("/api/v1/Thermostat");
     return await this.makeAPICall(callURL, {}, {
       normalize: normalizeThermostat,
       normalizeArray: true,
@@ -303,19 +304,19 @@ class NuHeatAPI {
   }
 
   async getAccount(): Promise<any> {
-    const callURL = "https://api.mynuheat.com/api/v1/Account";
+    const callURL = buildNuHeatApiUrl("/api/v1/Account");
     return await this.makeAPICall(callURL, {}, { normalize: normalizeAccount });
   }
 
   async refreshSchedule(serialNumber: string): Promise<any> {
-    const callURL = "https://api.mynuheat.com/api/v1/Schedule/" + serialNumber;
+    const callURL = buildNuHeatApiUrl("/api/v1/Schedule/" + serialNumber);
     return await this.makeAPICall(callURL, {}, {
       normalize: normalizeSchedule,
     });
   }
 
   async refreshSchedules(): Promise<any> {
-    const callURL = "https://api.mynuheat.com/api/v1/Schedule";
+    const callURL = buildNuHeatApiUrl("/api/v1/Schedule");
     return await this.makeAPICall(callURL, {}, {
       normalize: normalizeSchedule,
       normalizeArray: true,
@@ -323,7 +324,7 @@ class NuHeatAPI {
   }
 
   async updateSchedule(scheduleModel: Record<string, unknown>): Promise<any> {
-    const callURL = "https://api.mynuheat.com/api/v1/Schedule";
+    const callURL = buildNuHeatApiUrl("/api/v1/Schedule");
     return await this.makeAPICall(
       callURL,
       {
@@ -338,10 +339,7 @@ class NuHeatAPI {
 
   async refreshEnergyLogDay(serialNumber: string, date: string): Promise<any> {
     const callURL =
-      "https://api.mynuheat.com/api/v1/EnergyLog/Day/" +
-      serialNumber +
-      "/" +
-      date;
+      buildNuHeatApiUrl("/api/v1/EnergyLog/Day/" + serialNumber + "/" + date);
     return await this.makeAPICall(callURL, {}, {
       normalize: normalizeEnergyUsage,
     });
@@ -349,10 +347,7 @@ class NuHeatAPI {
 
   async refreshEnergyLogWeek(serialNumber: string, date: string): Promise<any> {
     const callURL =
-      "https://api.mynuheat.com/api/v1/EnergyLog/Week/" +
-      serialNumber +
-      "/" +
-      date;
+      buildNuHeatApiUrl("/api/v1/EnergyLog/Week/" + serialNumber + "/" + date);
     return await this.makeAPICall(callURL, {}, {
       normalize: normalizeEnergyUsage,
     });
@@ -360,10 +355,9 @@ class NuHeatAPI {
 
   async refreshEnergyLogMonth(serialNumber: string, year: string): Promise<any> {
     const callURL =
-      "https://api.mynuheat.com/api/v1/EnergyLog/Month/" +
-      serialNumber +
-      "/" +
-      year;
+      buildNuHeatApiUrl(
+        "/api/v1/EnergyLog/Month/" + serialNumber + "/" + year,
+      );
     return await this.makeAPICall(callURL, {}, {
       normalize: normalizeEnergyUsage,
     });

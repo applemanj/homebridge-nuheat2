@@ -2,6 +2,12 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import NuHeatAPI = require("../lib/NuHeatAPI");
+import {
+  NUHEAT_API_AUTHORIZE_URI,
+  NUHEAT_NOTIFICATION_HUB_URL,
+  NUHEAT_IDENTITY_BASE_URL,
+  buildNuHeatApiUrl,
+} from "../lib/settings";
 import { createLogStub } from "./support/helpers";
 
 function withCleanNuheatEnv<T>(callback: () => T): T {
@@ -40,6 +46,23 @@ test("default OAuth client uses Nuheat PKCE public client", () => {
     assert.equal(api.usePkce, true);
     assert.equal(api.usingBuiltInClient, true);
   });
+});
+
+test("default Nuheat endpoints use the Conductor NAM hosts", () => {
+  assert.equal(
+    NUHEAT_API_AUTHORIZE_URI,
+    NUHEAT_IDENTITY_BASE_URL + "/connect/authorize",
+  );
+  assert.equal(
+    buildNuHeatApiUrl("/api/v1/Thermostat"),
+    (process.env.NUHEAT_API_BASE_URL || "https://api.nam.mynuheat.com")
+      .replace(/\/+$/, "") + "/api/v1/Thermostat",
+  );
+  assert.equal(
+    NUHEAT_NOTIFICATION_HUB_URL,
+    (process.env.NUHEAT_API_BASE_URL || "https://api.nam.mynuheat.com")
+      .replace(/\/+$/, "") + "/notificationsHost",
+  );
 });
 
 test("built-in public client ignores stale secrets without custom client ID", () => {
@@ -112,6 +135,7 @@ test("authorization request includes PKCE challenge for public clients", async (
     await api.oauthGetAuthPage();
 
     const authorizationUrl = new URL(requestedUrl);
+    assert.equal(authorizationUrl.origin, NUHEAT_IDENTITY_BASE_URL);
     assert.equal(authorizationUrl.searchParams.get("client_id"), "public-client");
     assert.equal(authorizationUrl.searchParams.get("code_challenge_method"), "S256");
     assert.equal(

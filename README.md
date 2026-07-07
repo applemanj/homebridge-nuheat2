@@ -106,9 +106,14 @@ If `exposeScheduleSwitches` is enabled, the plugin will also create one switch p
 
 This plugin uses Nuheat's PKCE-based public client for normal authentication. The built-in public `clientId` is `homebridge-nuheat2_260421`; there is no distributable client secret and no user API key setup is required.
 
+Nuheat migrated Signature thermostats to the Conductor server architecture in July 2026. Current plugin releases use the North America Conductor API hosts by default:
+
+- Identity: `https://identity.nam.mynuheat.com`
+- OpenAPI: `https://api.nam.mynuheat.com`
+
 References:
 
-- [Nuheat OpenAPI docs](https://api.mynuheat.com/)
+- [Nuheat OpenAPI docs](https://api.nam.mynuheat.com/)
 - [Nuheat API access request page](https://www.nuheat.com/openapi)
 
 ## Troubleshooting
@@ -116,6 +121,7 @@ References:
 - Enable debug logging from the custom UI only while troubleshooting. Debug logs include detailed Nuheat API, notification, and accessory activity.
 - If accessories do not appear after changing allow-lists, save the settings and restart the Nuheat child bridge.
 - If login fails, confirm the same email and password work in the Nuheat app or web portal.
+- If Nuheat changes regional API routing again, advanced users can temporarily override the runtime hosts with `NUHEAT_API_BASE_URL` and `NUHEAT_IDENTITY_BASE_URL`.
 - If Homebridge shows stale UI fields after an update, close and reopen the plugin settings page.
 
 ## Development

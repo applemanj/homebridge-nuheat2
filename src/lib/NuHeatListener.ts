@@ -7,6 +7,7 @@ const signalR = require("@microsoft/signalr") as {
 };
 
 import NuHeatAPI = require("./NuHeatAPI");
+import { NUHEAT_NOTIFICATION_HUB_URL } from "./settings";
 import type { LoggerLike } from "./types";
 
 interface NotificationPlatformLike {
@@ -39,7 +40,7 @@ class NuHeatListener {
     this.recentNotifications = new Map();
 
     this.connection = new signalR.HubConnectionBuilder()
-      .withUrl("https://api.mynuheat.com/notificationsHost", {
+      .withUrl(NUHEAT_NOTIFICATION_HUB_URL, {
         accessTokenFactory: async () => {
           return (await this.nuHeatAPI.returnAccessToken()) || "";
         },

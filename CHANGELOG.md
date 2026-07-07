@@ -4,6 +4,23 @@ All notable changes to this project should be documented in this file
 
 ## [Unreleased]
 
+## [1.2.22] - 2026-07-07
+
+### Fixed
+
+- Switch Nuheat OAuth, REST, and notification defaults to the Conductor North America hosts after the July 2026 Signature thermostat migration
+- Centralize Nuheat endpoint construction and add environment-variable host overrides for emergency troubleshooting
+
+### Changed
+
+- Document the Conductor/NAM API host migration in the README
+
+## [1.2.21] - 2026-06-25
+
+### Changed
+
+- Add explicit package author metadata so npm identifies Joshua Appleman as the package author
+
 ## [1.2.20] - 2026-04-30
 
 ### Changed

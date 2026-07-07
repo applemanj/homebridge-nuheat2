@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const node_test_1 = __importDefault(require("node:test"));
 const strict_1 = __importDefault(require("node:assert/strict"));
 const NuHeatAPI = require("../lib/NuHeatAPI");
+const settings_1 = require("../lib/settings");
 const helpers_1 = require("./support/helpers");
 function withCleanNuheatEnv(callback) {
     const originalClientId = process.env.NUHEAT_API_CLIENT_ID;
@@ -38,6 +39,13 @@ function restoreEnv(key, value) {
         strict_1.default.equal(api.usePkce, true);
         strict_1.default.equal(api.usingBuiltInClient, true);
     });
+});
+(0, node_test_1.default)("default Nuheat endpoints use the Conductor NAM hosts", () => {
+    strict_1.default.equal(settings_1.NUHEAT_API_AUTHORIZE_URI, settings_1.NUHEAT_IDENTITY_BASE_URL + "/connect/authorize");
+    strict_1.default.equal((0, settings_1.buildNuHeatApiUrl)("/api/v1/Thermostat"), (process.env.NUHEAT_API_BASE_URL || "https://api.nam.mynuheat.com")
+        .replace(/\/+$/, "") + "/api/v1/Thermostat");
+    strict_1.default.equal(settings_1.NUHEAT_NOTIFICATION_HUB_URL, (process.env.NUHEAT_API_BASE_URL || "https://api.nam.mynuheat.com")
+        .replace(/\/+$/, "") + "/notificationsHost");
 });
 (0, node_test_1.default)("built-in public client ignores stale secrets without custom client ID", () => {
     withCleanNuheatEnv(() => {
@@ -97,6 +105,7 @@ function restoreEnv(key, value) {
         };
         await api.oauthGetAuthPage();
         const authorizationUrl = new URL(requestedUrl);
+        strict_1.default.equal(authorizationUrl.origin, settings_1.NUHEAT_IDENTITY_BASE_URL);
         strict_1.default.equal(authorizationUrl.searchParams.get("client_id"), "public-client");
         strict_1.default.equal(authorizationUrl.searchParams.get("code_challenge_method"), "S256");
         strict_1.default.equal(authorizationUrl.searchParams.get("code_challenge"), api.getPkceCodeChallenge("test-code-verifier"));
