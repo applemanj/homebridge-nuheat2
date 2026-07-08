@@ -31,6 +31,30 @@ function restoreEnv(key, value) {
     }
     process.env[key] = value;
 }
+function createResponse({ status = 200, url = settings_1.NUHEAT_API_AUTHORIZE_URI, location = null, setCookie = [], text = "", } = {}) {
+    return {
+        status,
+        ok: status >= 200 && status < 300,
+        statusText: status >= 200 && status < 300 ? "OK" : "Error",
+        headers: {
+            raw() {
+                return {
+                    "set-cookie": setCookie,
+                };
+            },
+            get(name) {
+                return name.toLowerCase() === "location" ? location : null;
+            },
+        },
+        url,
+        async json() {
+            return {};
+        },
+        async text() {
+            return text;
+        },
+    };
+}
 (0, node_test_1.default)("default OAuth client uses Nuheat PKCE public client", () => {
     withCleanNuheatEnv(() => {
         const api = new NuHeatAPI("user@example.com", "password", (0, helpers_1.createLogStub)());
@@ -137,4 +161,94 @@ function restoreEnv(key, value) {
     strict_1.default.equal(authorizationBody.has("code_verifier"), false);
     strict_1.default.equal(refreshBody.get("client_secret"), "legacy-secret");
     strict_1.default.equal(refreshBody.get("refresh_token"), "refresh-token");
+});
+(0, node_test_1.default)("OAuth login posts the Nuheat identity login form fields", async () => {
+    const api = new NuHeatAPI("user@example.com", "password", (0, helpers_1.createLogStub)());
+    const authPage = createResponse({
+        url: "https://identity.nam.mynuheat.com/Account/Login?ReturnUrl=test",
+        setCookie: ["anti-forgery=one; path=/"],
+        text: `
+      <form action="/Culture/SetCulture">
+        <input name="__RequestVerificationToken" value="culture-token">
+      </form>
+      <form method="post">
+        <input type="hidden" name="ReturnUrl" value="/connect/authorize/callback">
+        <input type="text" name="Email">
+        <input type="password" name="Password">
+        <input type="hidden" name="__RequestVerificationToken" value="login-token">
+      </form>
+    `,
+    });
+    let requestedUrl = "";
+    let requestBody = "";
+    api.fetch = async (url, options) => {
+        requestedUrl = url;
+        requestBody = options.body;
+        return createResponse({
+            setCookie: ["session=one; path=/", "auth=two; path=/"],
+        });
+    };
+    await api.oauthLogin(authPage);
+    const postedForm = new URLSearchParams(requestBody);
+    strict_1.default.equal(requestedUrl, authPage.url);
+    strict_1.default.equal(postedForm.get("Email"), "user@example.com");
+    strict_1.default.equal(postedForm.has("Username"), false);
+    strict_1.default.equal(postedForm.get("__RequestVerificationToken"), "login-token");
+    strict_1.default.equal(postedForm.get("ReturnUrl"), "/connect/authorize/callback");
+});
+(0, node_test_1.default)("OAuth consent follows Nuheat HTML browser redirects with consent cookies", async () => {
+    const api = new NuHeatAPI("user@example.com", "password", (0, helpers_1.createLogStub)());
+    const authResponse = createResponse({
+        location: "https://identity.nam.mynuheat.com/consent?returnUrl=test",
+    });
+    const calls = [];
+    api.fetch = async (url, options) => {
+        calls.push({ url, options });
+        if (calls.length === 1) {
+            return createResponse({
+                url,
+                setCookie: ["consent=one; path=/"],
+                text: `
+          <form action="/Culture/SetCulture"></form>
+          <form action="/Consent" method="post">
+            <input type="hidden" name="ReturnUrl" value="/connect/authorize/callback">
+            <input type="checkbox" name="ScopesConsented" value="openid" checked>
+            <input type="checkbox" name="ScopesConsented" value="profile" checked>
+            <input type="checkbox" name="ScopesConsented" value="openapi" checked>
+            <input type="checkbox" name="ScopesConsented" value="offline_access" checked>
+            <input type="hidden" name="__RequestVerificationToken" value="consent-token">
+            <button name="button" value="yes">Yes, Allow</button>
+          </form>
+        `,
+            });
+        }
+        if (calls.length === 2) {
+            return createResponse({
+                url,
+                setCookie: ["grant=one; path=/"],
+                text: `
+          <meta http-equiv="refresh" content="0;url=/connect/authorize/callback?state=done">
+        `,
+            });
+        }
+        return createResponse({
+            status: 302,
+            url,
+            location: "http://localhost?code=abc123&scope=openid%20profile%20openapi%20offline_access",
+        });
+    };
+    const result = await api.oauthConfirm(authResponse, "session=one");
+    strict_1.default.equal(result?.headers.get("location"), "http://localhost?code=abc123&scope=openid%20profile%20openapi%20offline_access");
+    strict_1.default.equal(calls[1].url, "https://identity.nam.mynuheat.com/Consent");
+    const consentBody = new URLSearchParams(calls[1].options.body);
+    strict_1.default.equal(consentBody.get("__RequestVerificationToken"), "consent-token");
+    strict_1.default.deepEqual(consentBody.getAll("ScopesConsented"), [
+        "openid",
+        "profile",
+        "openapi",
+        "offline_access",
+    ]);
+    strict_1.default.match(calls[2].options.headers.Cookie, /session=one/);
+    strict_1.default.match(calls[2].options.headers.Cookie, /consent=one/);
+    strict_1.default.match(calls[2].options.headers.Cookie, /grant=one/);
 });

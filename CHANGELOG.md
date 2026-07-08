@@ -4,6 +4,14 @@ All notable changes to this project should be documented in this file
 
 ## [Unreleased]
 
+## [1.2.23] - 2026-07-08
+
+### Fixed
+
+- Follow Nuheat's updated OAuth browser redirects during login and consent so PKCE token exchange no longer fails with `invalid_grant`
+- Preserve Nuheat consent cookies through the final authorization callback and select the correct login/consent forms when the identity page includes multiple forms
+- Add regression tests for the Conductor/NAM OAuth login and consent flow
+
 ## [1.2.22] - 2026-07-07
 
 ### Fixed

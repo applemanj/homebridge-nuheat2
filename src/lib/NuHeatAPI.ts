@@ -412,6 +412,163 @@ class NuHeatAPI {
     }
   }
 
+  findForm(html: any, selector: string): any {
+    return (
+      html
+        .querySelectorAll("form")
+        .find((form: any) => form.querySelector(selector)) || html
+    );
+  }
+
+  getFormAction(form: any, baseUrl: string, fallbackUrl: string): string {
+    return new URL(
+      form.getAttribute?.("action") || fallbackUrl,
+      baseUrl,
+    ).toString();
+  }
+
+  getInputValue(html: any, name: string): string {
+    return (
+      html.querySelector("input[name=" + name + "]")?.getAttribute("value") ||
+      ""
+    );
+  }
+
+  getCheckedInputValues(html: any, name: string): string[] {
+    const values: string[] = [];
+
+    for (const input of html.querySelectorAll("input[name=" + name + "]")) {
+      const type = (input.getAttribute("type") || "").toLowerCase();
+      const value = input.getAttribute("value") || "";
+      if (
+        value &&
+        ((type === "checkbox" && input.hasAttribute("checked")) ||
+          type === "hidden")
+      ) {
+        if (!values.includes(value)) {
+          values.push(value);
+        }
+      }
+    }
+
+    return values;
+  }
+
+  getHtmlMetaRefreshUrl(htmlText: string, baseUrl: string): string {
+    const html = parse(htmlText);
+    const metaRefresh = html
+      .querySelectorAll("meta")
+      .find(
+        (node: any) =>
+          (node.getAttribute("http-equiv") || "").toLowerCase() === "refresh",
+      );
+    const refreshContent = metaRefresh?.getAttribute("content") || "";
+    const redirectMatch = refreshContent.match(/url\s*=\s*([^;]+)/i);
+
+    if (!redirectMatch) {
+      return "";
+    }
+
+    const redirectUrl = redirectMatch[1]
+      .trim()
+      .replace(/^['"]|['"]$/g, "");
+    return new URL(redirectUrl, baseUrl).toString();
+  }
+
+  mergeCookies(...cookies: Array<string | false | null | undefined>): string {
+    const cookiePairs = new Map<string, string>();
+
+    for (const cookie of cookies) {
+      if (!cookie) {
+        continue;
+      }
+
+      for (const cookiePair of cookie.split(/;\s*/)) {
+        const cookieName = cookiePair.split("=")[0];
+        if (cookieName) {
+          cookiePairs.set(cookieName, cookiePair);
+        }
+      }
+    }
+
+    return Array.from(cookiePairs.values()).join("; ");
+  }
+
+  async followHtmlMetaRefresh(
+    response: ResponseLike,
+    cookie: string,
+  ): Promise<ResponseLike | null> {
+    if (response.headers.get("location")) {
+      return response;
+    }
+
+    const redirectUrl = this.getHtmlMetaRefreshUrl(
+      await response.text(),
+      response.url,
+    );
+
+    if (!redirectUrl) {
+      return response;
+    }
+
+    this.log.debug(
+      "NuHeatAPI: Following OAuth browser redirect to " +
+        new URL(redirectUrl).pathname +
+        ".",
+    );
+
+    const redirectResponse = await this.fetch(redirectUrl, {
+      headers: {
+        Cookie: cookie,
+      },
+      redirect: "manual",
+    });
+
+    if (!redirectResponse) {
+      this.log.error("NuHeatAPI: Unable to follow the OAuth browser redirect.");
+      return null;
+    }
+
+    return redirectResponse;
+  }
+
+  getRedirectUrl(response: ResponseLike): URL | null {
+    const location = response.headers.get("location");
+
+    if (!location) {
+      return null;
+    }
+
+    return new URL(location, NUHEAT_API_AUTHORIZE_URI);
+  }
+
+  isFinalAuthorizationRedirect(response: ResponseLike): boolean {
+    const redirectUrl = this.getRedirectUrl(response);
+
+    if (!redirectUrl) {
+      return false;
+    }
+
+    return (
+      redirectUrl.searchParams.has("code") ||
+      redirectUrl.searchParams.has("error")
+    );
+  }
+
+  needsOAuthConsent(response: ResponseLike): boolean {
+    const redirectUrl = this.getRedirectUrl(response);
+
+    if (!redirectUrl || this.isFinalAuthorizationRedirect(response)) {
+      return false;
+    }
+
+    const redirectPath = redirectUrl.pathname.toLowerCase();
+    return (
+      redirectPath === "/connect/authorize/callback" ||
+      redirectPath === "/consent"
+    );
+  }
+
   async oauthGetAuthPage(): Promise<ResponseLike | null> {
     const authEndpoint = new URL(NUHEAT_API_AUTHORIZE_URI);
     authEndpoint.searchParams.set("response_type", "code");
@@ -452,15 +609,15 @@ class NuHeatAPI {
     if (cookie) {
       const htmlText = await authPage.text();
       const loginPageHtml = parse(htmlText);
+      const loginForm = this.findForm(loginPageHtml, "input[name=Password]");
 
-      const requestVerificationToken =
-        loginPageHtml
-          .querySelector("input[name=__RequestVerificationToken]")
-          ?.getAttribute("value") || "";
+      const requestVerificationToken = this.getInputValue(
+        loginForm,
+        "__RequestVerificationToken",
+      );
       const requestReturnURL =
-        loginPageHtml
-          .querySelector("input[name=ReturnUrl]")
-          ?.getAttribute("value") || "";
+        this.getInputValue(loginForm, "ReturnUrl") ||
+        this.getInputValue(loginPageHtml, "ReturnUrl");
 
       if (!requestVerificationToken) {
         this.log.error(
@@ -469,9 +626,12 @@ class NuHeatAPI {
         return null;
       }
 
+      const usernameField = loginForm.querySelector("input[name=Email]")
+        ? "Email"
+        : "Username";
       const loginBody = new URLSearchParams({
         ReturnUrl: requestReturnURL,
-        Username: this.email,
+        [usernameField]: this.email,
         Password: this.password,
         button: "login",
         __RequestVerificationToken: requestVerificationToken,
@@ -513,31 +673,67 @@ class NuHeatAPI {
     authPage: ResponseLike,
     sessionCookie: string,
   ): Promise<ResponseLike | null> {
-    const redirectUrl = new URL(authPage.headers.get("location") || "", authPage.url);
+    const redirectUrl = this.getRedirectUrl(authPage);
 
-    const confirmPage = await this.fetch(redirectUrl.toString(), {
+    if (!redirectUrl) {
+      this.log.error("NuHeatAPI: Unable to complete the OAuth login redirect.");
+      return null;
+    }
+
+    let confirmPage = await this.fetch(redirectUrl.toString(), {
       headers: {
         Cookie: sessionCookie,
       },
+      redirect: "manual",
     });
     if (!confirmPage) {
       this.log.error("NuHeatAPI: Unable to complete the OAuth login redirect.");
       return null;
     }
-    const cookie = this.trimSetCookie(confirmPage.headers.raw?.()["set-cookie"]);
+    const callbackCookie = this.trimSetCookie(
+      confirmPage.headers.raw?.()["set-cookie"],
+    );
+    const callbackSessionCookie = this.mergeCookies(sessionCookie, callbackCookie);
 
-    if (cookie) {
+    if (this.isFinalAuthorizationRedirect(confirmPage)) {
+      return confirmPage;
+    }
+
+    const confirmRedirectUrl = this.getRedirectUrl(confirmPage);
+    if (confirmRedirectUrl?.pathname.toLowerCase() === "/consent") {
+      confirmPage = await this.fetch(confirmRedirectUrl.toString(), {
+        headers: {
+          Cookie: callbackSessionCookie,
+        },
+        redirect: "manual",
+      });
+
+      if (!confirmPage) {
+        this.log.error(
+          "NuHeatAPI: Unable to access the OAuth consent confirmation page.",
+        );
+        return null;
+      }
+    }
+
+    const cookie = this.trimSetCookie(confirmPage.headers.raw?.()["set-cookie"]);
+    const consentSessionCookie = this.mergeCookies(callbackSessionCookie, cookie);
+
+    if (consentSessionCookie) {
       const htmlText = await confirmPage.text();
       const loginPageHtml = parse(htmlText);
+      const consentForm = this.findForm(
+        loginPageHtml,
+        "input[name=ScopesConsented]",
+      );
 
-      const requestVerificationToken =
-        loginPageHtml
-          .querySelector("input[name=__RequestVerificationToken]")
-          ?.getAttribute("value") || "";
+      const requestVerificationToken = this.getInputValue(
+        consentForm,
+        "__RequestVerificationToken",
+      );
       const requestReturnURL =
-        loginPageHtml
-          .querySelector("input[name=ReturnUrl]")
-          ?.getAttribute("value") || "";
+        this.getInputValue(consentForm, "ReturnUrl") ||
+        this.getInputValue(loginPageHtml, "ReturnUrl");
 
       if (!requestVerificationToken) {
         this.log.error(
@@ -552,19 +748,31 @@ class NuHeatAPI {
         RememberConsent: "true",
         __RequestVerificationToken: requestVerificationToken,
       });
+      const checkedScopes = this.getCheckedInputValues(
+        consentForm,
+        "ScopesConsented",
+      );
+      const scopes = checkedScopes.length > 0 ? checkedScopes : [...OAUTH_SCOPES];
+      for (const scope of scopes) {
+        loginBody.append("ScopesConsented", scope);
+      }
 
       this.log.debug(
         "NuHeatAPI: OAuth consent required. Confirming scopes: " +
           this.getRequestedScope(),
       );
 
-      const response = await this.fetch(NUHEAT_API_CONSENT_URI, {
-        body:
-          loginBody.toString() +
-          OAUTH_SCOPES.map((scope) => "&ScopesConsented=" + scope).join(""),
+      const consentUrl = this.getFormAction(
+        consentForm,
+        confirmPage.url,
+        NUHEAT_API_CONSENT_URI,
+      );
+
+      const response = await this.fetch(consentUrl, {
+        body: loginBody.toString(),
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
-          Cookie: cookie + "; " + sessionCookie,
+          Cookie: consentSessionCookie,
         },
         method: "POST",
         redirect: "manual",
@@ -577,7 +785,14 @@ class NuHeatAPI {
         return null;
       }
 
-      return response;
+      const responseCookie = this.trimSetCookie(
+        response.headers.raw?.()["set-cookie"],
+      );
+
+      return await this.followHtmlMetaRefresh(
+        response,
+        this.mergeCookies(consentSessionCookie, responseCookie),
+      );
     }
 
     return null;
@@ -592,14 +807,15 @@ class NuHeatAPI {
       NUHEAT_API_AUTHORIZE_URI,
     );
 
-    const cookie = this.trimSetCookie(
-      loginResponse.headers.raw?.()["set-cookie"],
+    const cookie = this.mergeCookies(
+      sessionCookie,
+      this.trimSetCookie(loginResponse.headers.raw?.()["set-cookie"]),
     );
 
     if (cookie) {
       const response = await this.fetch(redirectUrl.toString(), {
         headers: {
-          Cookie: cookie + "; " + sessionCookie,
+          Cookie: cookie,
         },
         redirect: "manual",
       });
@@ -633,12 +849,12 @@ class NuHeatAPI {
     );
 
     if (sessionCookie) {
-      if (
-        response.headers &&
-        (response.headers.get("location") || "").startsWith(
-          "/connect/authorize/callback?",
-        )
-      ) {
+      response = await this.followHtmlMetaRefresh(response, sessionCookie);
+      if (!response) {
+        return null;
+      }
+
+      if (this.needsOAuthConsent(response)) {
         response = await this.oauthConfirm(response, sessionCookie);
 
         if (!response) {
@@ -646,9 +862,11 @@ class NuHeatAPI {
         }
       }
 
-      response = await this.oauthRedirect(response, sessionCookie);
-      if (!response) {
-        return null;
+      if (!this.isFinalAuthorizationRedirect(response)) {
+        response = await this.oauthRedirect(response, sessionCookie);
+        if (!response) {
+          return null;
+        }
       }
 
       const redirectUrl = new URL(response.headers.get("location") || "");
