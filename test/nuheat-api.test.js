@@ -69,7 +69,7 @@ function createResponse({ status = 200, url = settings_1.NUHEAT_API_AUTHORIZE_UR
     strict_1.default.equal((0, settings_1.buildNuHeatApiUrl)("/api/v1/Thermostat"), (process.env.NUHEAT_API_BASE_URL || "https://api.nam.mynuheat.com")
         .replace(/\/+$/, "") + "/api/v1/Thermostat");
     strict_1.default.equal(settings_1.NUHEAT_NOTIFICATION_HUB_URL, (process.env.NUHEAT_API_BASE_URL || "https://api.nam.mynuheat.com")
-        .replace(/\/+$/, "") + "/notificationsHost");
+        .replace(/\/+$/, "") + "/v2/notificationsHost");
 });
 (0, node_test_1.default)("built-in public client ignores stale secrets without custom client ID", () => {
     withCleanNuheatEnv(() => {

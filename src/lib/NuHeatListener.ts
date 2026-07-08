@@ -1,4 +1,7 @@
 const signalR = require("@microsoft/signalr") as {
+  HttpTransportType: {
+    WebSockets: number;
+  };
   HubConnectionBuilder: new () => {
     withUrl(url: string, options: Record<string, unknown>): any;
     withAutomaticReconnect(): any;
@@ -28,23 +31,27 @@ class NuHeatListener {
   nuHeatAPI: NuHeatAPI;
   nuHeatPlatform: NotificationPlatformLike;
   log: LoggerLike;
-  notificationTypes: string[];
+  notificationTypes: number[];
   connection: any;
+  connectionOptions: Record<string, unknown>;
   recentNotifications: Map<string, number>;
 
   constructor(nuHeatAPI: NuHeatAPI, nuheatPlatform: NotificationPlatformLike) {
     this.nuHeatAPI = nuHeatAPI;
     this.nuHeatPlatform = nuheatPlatform;
     this.log = nuheatPlatform.log;
-    this.notificationTypes = ["2", "3", "4"];
+    this.notificationTypes = [1, 2];
     this.recentNotifications = new Map();
+    this.connectionOptions = {
+      accessTokenFactory: async () => {
+        return (await this.nuHeatAPI.returnAccessToken()) || "";
+      },
+      skipNegotiation: true,
+      transport: signalR.HttpTransportType.WebSockets,
+    };
 
     this.connection = new signalR.HubConnectionBuilder()
-      .withUrl(NUHEAT_NOTIFICATION_HUB_URL, {
-        accessTokenFactory: async () => {
-          return (await this.nuHeatAPI.returnAccessToken()) || "";
-        },
-      })
+      .withUrl(NUHEAT_NOTIFICATION_HUB_URL, this.connectionOptions)
       .withAutomaticReconnect()
       .build();
   }

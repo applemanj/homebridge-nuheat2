@@ -8,6 +8,8 @@ const DEFAULT_NUHEAT_API_BASE_URL = "https://api.nam.mynuheat.com";
 
 const DEFAULT_NUHEAT_IDENTITY_BASE_URL = "https://identity.nam.mynuheat.com";
 
+const DEFAULT_NUHEAT_NOTIFICATION_HUB_PATH = "/v2/notificationsHost";
+
 function normalizeBaseUrl(url: string): string {
   return url.replace(/\/+$/, "");
 }
@@ -32,5 +34,7 @@ export const NUHEAT_API_TOKEN_URI =
 
 export const NUHEAT_API_CONSENT_URI = NUHEAT_IDENTITY_BASE_URL + "/consent";
 
-export const NUHEAT_NOTIFICATION_HUB_URL =
-  NUHEAT_API_BASE_URL + "/notificationsHost";
+export const NUHEAT_NOTIFICATION_HUB_URL = normalizeBaseUrl(
+  process.env.NUHEAT_NOTIFICATION_HUB_URL ||
+    buildNuHeatApiUrl(DEFAULT_NUHEAT_NOTIFICATION_HUB_PATH),
+);

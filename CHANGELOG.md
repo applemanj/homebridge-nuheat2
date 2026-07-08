@@ -4,6 +4,14 @@ All notable changes to this project should be documented in this file
 
 ## [Unreleased]
 
+## [1.2.24] - 2026-07-08
+
+### Fixed
+
+- Restore Nuheat SignalR notifications on the Conductor/NAM API by using the documented v2 notification hub
+- Subscribe with Nuheat's numeric v2 notification IDs and direct WebSocket transport to avoid flaky negotiated connections behind the new backend
+- Document the v2 notification host and `NUHEAT_NOTIFICATION_HUB_URL` emergency override
+
 ## [1.2.23] - 2026-07-08
 
 ### Fixed

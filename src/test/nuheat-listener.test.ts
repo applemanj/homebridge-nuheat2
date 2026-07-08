@@ -1,10 +1,16 @@
 import test = require("node:test");
 import assert = require("node:assert/strict");
 
+const signalR = require("@microsoft/signalr") as {
+  HttpTransportType: {
+    WebSockets: number;
+  };
+};
+
 import NuHeatListener = require("../lib/NuHeatListener");
 import { createLogStub } from "./support/helpers";
 
-test("listener subscribes to thermostat, schedule, and group notifications", () => {
+test("listener subscribes to Nuheat Conductor v2 notification types", () => {
   const listener = new NuHeatListener({} as any, {
     log: createLogStub(),
     async refreshThermostats() {
@@ -15,7 +21,12 @@ test("listener subscribes to thermostat, schedule, and group notifications", () 
     },
   });
 
-  assert.deepEqual(listener.notificationTypes, ["2", "3", "4"]);
+  assert.deepEqual(listener.notificationTypes, [1, 2]);
+  assert.equal(listener.connectionOptions.skipNegotiation, true);
+  assert.equal(
+    listener.connectionOptions.transport,
+    signalR.HttpTransportType.WebSockets,
+  );
 });
 
 test("notification batches coalesce to a single thermostat refresh", () => {

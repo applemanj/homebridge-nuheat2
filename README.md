@@ -110,6 +110,7 @@ Nuheat migrated Signature thermostats to the Conductor server architecture in Ju
 
 - Identity: `https://identity.nam.mynuheat.com`
 - OpenAPI: `https://api.nam.mynuheat.com`
+- Notifications: `https://api.nam.mynuheat.com/v2/notificationsHost`
 
 References:
 
@@ -121,7 +122,7 @@ References:
 - Enable debug logging from the custom UI only while troubleshooting. Debug logs include detailed Nuheat API, notification, and accessory activity.
 - If accessories do not appear after changing allow-lists, save the settings and restart the Nuheat child bridge.
 - If login fails, confirm the same email and password work in the Nuheat app or web portal.
-- If Nuheat changes regional API routing again, advanced users can temporarily override the runtime hosts with `NUHEAT_API_BASE_URL` and `NUHEAT_IDENTITY_BASE_URL`.
+- If Nuheat changes regional API routing again, advanced users can temporarily override the runtime hosts with `NUHEAT_API_BASE_URL`, `NUHEAT_IDENTITY_BASE_URL`, and `NUHEAT_NOTIFICATION_HUB_URL`.
 - If Homebridge shows stale UI fields after an update, close and reopen the plugin settings page.
 
 ## Development
@@ -151,4 +152,4 @@ This project is maintained by `applemanj` and retains attribution to SenorShaun 
 
 - Validate the PKCE public-client flow against more real-world Nuheat accounts.
 - Verify group and away-mode behavior against current live API responses.
-- Evaluate whether SignalR notifications can reduce polling further in real-world deployments.
+- Monitor Nuheat Conductor v2 notification behavior across more accounts and keep polling as the reliability fallback.

@@ -98,7 +98,7 @@ test("default Nuheat endpoints use the Conductor NAM hosts", () => {
   assert.equal(
     NUHEAT_NOTIFICATION_HUB_URL,
     (process.env.NUHEAT_API_BASE_URL || "https://api.nam.mynuheat.com")
-      .replace(/\/+$/, "") + "/notificationsHost",
+      .replace(/\/+$/, "") + "/v2/notificationsHost",
   );
 });
 
