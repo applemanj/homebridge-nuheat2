@@ -35,6 +35,19 @@ test("normalizeThermostat maps Swagger PascalCase payloads to internal camelCase
         error: undefined,
     });
 });
+test("normalizeGroup preserves current string group IDs", () => {
+    assert.deepEqual((0, NuHeatModels_1.normalizeGroup)({
+        GroupId: "group-away",
+        GroupName: "Away",
+        AwayMode: false,
+        AwaySetPointTemp: 850,
+    }), {
+        groupId: "group-away",
+        groupName: "Away",
+        awayMode: false,
+        awaySetPointTemp: 850,
+    });
+});
 test("normalizeSchedule maps nested schedule data", () => {
     const schedule = (0, NuHeatModels_1.normalizeSchedule)({
         SerialNumber: "ABC123",

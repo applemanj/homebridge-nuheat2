@@ -33,14 +33,14 @@ interface AccountInput extends Account {
 }
 
 export interface Group {
-  groupId?: number;
+  groupId?: string | number;
   groupName?: string;
   awayMode?: boolean;
   awaySetPointTemp?: number;
 }
 
 interface GroupInput extends Group {
-  GroupId?: number;
+  GroupId?: string | number;
   GroupName?: string;
   AwayMode?: boolean;
   AwaySetPointTemp?: number;
@@ -93,7 +93,7 @@ export interface Thermostat {
   setPointTemp?: number;
   scheduleMode?: number;
   holdSetPointDateTime?: string;
-  groupId?: number;
+  groupId?: string | number;
   swVersion?: string;
   online?: boolean | string;
   operatingMode?: number;
@@ -109,7 +109,7 @@ interface ThermostatInput extends Thermostat {
   SetPointTemp?: number;
   ScheduleMode?: number;
   HoldSetPointDateTime?: string;
-  GroupId?: number;
+  GroupId?: string | number;
   SwVersion?: string;
   Online?: boolean | string;
   OperatingMode?: number;

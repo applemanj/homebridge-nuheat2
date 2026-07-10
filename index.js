@@ -130,12 +130,13 @@ class NuHeatPlatform {
             this.log.error("Error getting data from NuHeatAPI");
             return;
         }
-        if (groupArray.length === 0) {
-            this.log.info("No groups defined in config. Auto populating away mode switches by pulling all groups from the account.");
+        const exposeAllGroups = !!this.config.autoPopulateAwayModeSwitches;
+        if (exposeAllGroups) {
+            this.log.info("Auto populating away mode switches by pulling all groups from the account.");
         }
         await Promise.all(response.map(async (deviceData) => {
-            if (!(groupArray.length === 0 ||
-                groupArray.find((device) => device.groupName == deviceData.groupName && !device.disabled))) {
+            const configuredGroup = groupArray.find((device) => device.groupName == deviceData.groupName && !device.disabled);
+            if (!exposeAllGroups && !configuredGroup) {
                 return;
             }
             const uuid = UUIDGen.generate(String(deviceData.groupId));

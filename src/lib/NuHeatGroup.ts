@@ -54,7 +54,7 @@ class NuHeatGroup {
       this.deviceData.groupName,
     );
     const response = await this.NuHeatAPI.setAwayMode(
-      this.deviceData.groupId ?? 0,
+      this.deviceData.groupId ?? "",
       value,
     );
     if (!response) {
@@ -67,7 +67,7 @@ class NuHeatGroup {
   }
 
   async updateAccessory(): Promise<void> {
-    const response = await this.NuHeatAPI.refreshGroup(this.deviceData.groupId ?? 0);
+    const response = await this.NuHeatAPI.refreshGroup(this.deviceData.groupId ?? "");
     if (!response) {
       this.log.error("Error getting updated data", this.deviceData.groupName);
     } else {

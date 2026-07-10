@@ -205,7 +205,7 @@ class NuHeatAPI {
     return requestBody;
   }
 
-  async setAwayMode(groupId: number, awayMode: boolean): Promise<any> {
+  async setAwayMode(groupId: string | number, awayMode: boolean): Promise<any> {
     const callURL = buildNuHeatApiUrl("/api/v1/Group");
     const callOptions: FetchOptions = {
       body: JSON.stringify({
@@ -275,7 +275,7 @@ class NuHeatAPI {
     });
   }
 
-  async refreshGroup(groupId: number): Promise<any> {
+  async refreshGroup(groupId: string | number): Promise<any> {
     const callURL = buildNuHeatApiUrl("/api/v1/Group/" + groupId);
     return await this.makeAPICall(callURL, {}, { normalize: normalizeGroup });
   }

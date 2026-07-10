@@ -4,6 +4,7 @@ import assert = require("node:assert/strict");
 import {
   normalizeAccount,
   normalizeEnergyUsage,
+  normalizeGroup,
   normalizeSchedule,
   normalizeThermostat,
   SCHEDULE_MODE,
@@ -41,6 +42,23 @@ test("normalizeThermostat maps Swagger PascalCase payloads to internal camelCase
     tzOffset: "-05:00",
     error: undefined,
   });
+});
+
+test("normalizeGroup preserves current string group IDs", () => {
+  assert.deepEqual(
+    normalizeGroup({
+      GroupId: "group-away",
+      GroupName: "Away",
+      AwayMode: false,
+      AwaySetPointTemp: 850,
+    }),
+    {
+      groupId: "group-away",
+      groupName: "Away",
+      awayMode: false,
+      awaySetPointTemp: 850,
+    },
+  );
 });
 
 test("normalizeSchedule maps nested schedule data", () => {

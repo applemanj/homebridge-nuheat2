@@ -202,23 +202,19 @@ class NuHeatPlatform {
       return;
     }
 
-    if (groupArray.length === 0) {
+    const exposeAllGroups = !!this.config.autoPopulateAwayModeSwitches;
+    if (exposeAllGroups) {
       this.log.info(
-        "No groups defined in config. Auto populating away mode switches by pulling all groups from the account.",
+        "Auto populating away mode switches by pulling all groups from the account.",
       );
     }
 
     await Promise.all(
       response.map(async (deviceData: AccessoryGroup) => {
-        if (
-          !(
-            groupArray.length === 0 ||
-            groupArray.find(
-              (device) =>
-                device.groupName == deviceData.groupName && !device.disabled,
-            )
-          )
-        ) {
+        const configuredGroup = groupArray.find(
+          (device) => device.groupName == deviceData.groupName && !device.disabled,
+        );
+        if (!exposeAllGroups && !configuredGroup) {
           return;
         }
 

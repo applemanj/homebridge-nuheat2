@@ -4,6 +4,14 @@ All notable changes to this project should be documented in this file
 
 ## [Unreleased]
 
+## [1.2.25] - 2026-07-09
+
+### Fixed
+
+- Make “Expose away-mode switches for all groups” override the optional group allow-list so every Nuheat group appears in HomeKit
+- Support the string group identifiers returned by Nuheat's current Conductor/NAM API
+- Update the `ws` dependency override to 7.5.11 to resolve a memory-exhaustion denial-of-service advisory
+
 ## [1.2.24] - 2026-07-08
 
 ### Fixed
