@@ -14,6 +14,21 @@ export const OPERATING_MODE = {
 export type OperatingMode =
   (typeof OPERATING_MODE)[keyof typeof OPERATING_MODE];
 
+export const HEATING_MODE = {
+  OFF: "off",
+  MANUAL: "manual",
+  HOLD: "hold",
+  AUTO: "auto",
+} as const;
+
+export type HeatingMode = (typeof HEATING_MODE)[keyof typeof HEATING_MODE];
+
+/** v2 `eTemperatureType`: 0 = absolute setpoint, 1 = relative to current. */
+export const TEMPERATURE_TYPE = {
+  ABSOLUTE: 0,
+  RELATIVE: 1,
+} as const;
+
 type Maybe<T> = T | null | undefined;
 
 export interface Account {
@@ -96,6 +111,7 @@ export interface Thermostat {
   groupId?: string | number;
   swVersion?: string;
   online?: boolean | string;
+  isOnline?: boolean | string;
   operatingMode?: number;
   isHeating?: boolean;
   currentTemperature?: number;
@@ -117,6 +133,7 @@ interface ThermostatInput extends Thermostat {
   CurrentTemperature?: number;
   TZOffset?: number | string;
   Error?: string | null;
+  IsOnline?: boolean | string;
 }
 
 export interface EnergyUsageEntry {
@@ -156,6 +173,56 @@ interface EnergyUsageInput {
 
 function coalesce<T>(...values: Array<Maybe<T>>): T | undefined {
   return values.find((value) => value !== undefined && value !== null);
+}
+
+export function isThermostatOnline(thermostat: Thermostat): boolean {
+  const onlineValue = coalesce(
+    (thermostat as ThermostatInput).Online,
+    thermostat.online,
+    (thermostat as ThermostatInput).isOnline,
+  );
+
+  if (typeof onlineValue === "boolean") {
+    return onlineValue;
+  }
+
+  if (typeof onlineValue === "string") {
+    return onlineValue.replace(/'/g, "").trim().toLowerCase() === "true";
+  }
+
+  return true;
+}
+
+/**
+ * NuHeat has no "off". Standby is reported as operating mode MANUAL paired
+ * with schedule mode AUTO; a real manual setpoint change always sends a hold
+ * schedule mode.
+ */
+export function deriveHeatingMode(thermostat: Thermostat): HeatingMode {
+  if (!isThermostatOnline(thermostat)) {
+    return HEATING_MODE.OFF;
+  }
+
+  const scheduleMode = Number(thermostat.scheduleMode);
+
+  if (scheduleMode === SCHEDULE_MODE.HOLD) {
+    return HEATING_MODE.HOLD;
+  }
+
+  if (scheduleMode === SCHEDULE_MODE.PERMANENT_HOLD) {
+    return HEATING_MODE.MANUAL;
+  }
+
+  if (scheduleMode === SCHEDULE_MODE.AUTO) {
+    return Number(thermostat.operatingMode) === OPERATING_MODE.MANUAL
+      ? HEATING_MODE.OFF
+      : HEATING_MODE.AUTO;
+  }
+
+  // Unknown schedule mode: report whatever the hardware tells us.
+  return Number(thermostat.operatingMode) === OPERATING_MODE.MANUAL
+    ? HEATING_MODE.MANUAL
+    : HEATING_MODE.AUTO;
 }
 
 export function normalizeAccount(account: AccountInput = {}): Account {

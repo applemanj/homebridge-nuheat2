@@ -192,7 +192,7 @@ class NuHeatPlatform {
                 entry = { uuid };
                 this.accessories.push(entry);
             }
-            entry.accessory = new NuHeatThermostat(this.log, deviceData, this.config.holdLength || 1440, getPlatformAccessory(deviceAccessory), this.NuHeatAPI, Homebridge, this.account?.temperatureScale);
+            entry.accessory = new NuHeatThermostat(this.log, deviceData, this.config.holdLength || 1440, getPlatformAccessory(deviceAccessory), this.NuHeatAPI, Homebridge, this.account?.temperatureScale, this.config.enableThermostatModeControl === true);
             entry.existsInConfig = true;
             this.log.info("Loaded thermostat " +
                 deviceData.serialNumber +

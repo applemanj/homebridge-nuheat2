@@ -287,6 +287,46 @@ test("setHeatSetpoint does not log the raw thermostat payload at info level", as
   );
 });
 
+test("setThermostatMode targets the v2 mode endpoints", async () => {
+  const calls: Array<{ url: string; body: any }> = [];
+  const api = new NuHeatAPI("user@example.com", "password", createLogStub());
+  api.refreshAccessToken = async () => true;
+  api.fetch = async (url: string, options: any) => {
+    calls.push({ url, body: JSON.parse(options.body) });
+    return createResponse({ status: 204, url });
+  };
+
+  assert.equal(await api.setThermostatMode("123456789", "auto"), true);
+  assert.equal(await api.setThermostatMode("123456789", "manual", { setPointTemp: 20 }), true);
+  assert.equal(
+    await api.setThermostatMode("123456789", "hold", {
+      setPointTemp: 20,
+      holdLength: 60,
+    }),
+    true,
+  );
+
+  assert.equal(
+    calls[0].url,
+    buildNuHeatApiUrl("/api/v2/Mode/Auto"),
+  );
+  assert.deepEqual(calls[0].body, { serialNumber: "123456789" });
+
+  assert.equal(calls[1].url, buildNuHeatApiUrl("/api/v2/Mode/Manual"));
+  assert.deepEqual(calls[1].body, {
+    serialNumber: "123456789",
+    temperature: 20,
+    temperatureType: 0,
+  });
+
+  assert.equal(calls[2].url, buildNuHeatApiUrl("/api/v2/Mode/Hold"));
+  assert.equal(calls[2].body.serialNumber, "123456789");
+  assert.equal(calls[2].body.temperature, 20);
+  assert.equal(calls[2].body.temperatureType, 0);
+  assert.equal(typeof calls[2].body.holdUntil, "string");
+  assert.equal(Number.isNaN(Date.parse(calls[2].body.holdUntil)), false);
+});
+
 test("OAuth consent follows Nuheat HTML browser redirects with consent cookies", async () => {
   const api = new NuHeatAPI("user@example.com", "password", createLogStub());
   const authResponse = createResponse({

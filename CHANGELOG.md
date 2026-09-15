@@ -4,6 +4,14 @@ All notable changes to this project should be documented in this file
 
 ## [Unreleased]
 
+### Added
+
+- Opt-in `enableThermostatModeControl` setting that adds `Off` and `Auto` target states to each thermostat and routes those requests through Nuheat's v2 mode API (`PUT /api/v2/Mode/Manual`, `Mode/Hold`, `Mode/Auto`). Defaults to `false`, so existing installations keep advertising heat only
+
+### Changed
+
+- Derive the HomeKit target state from Nuheat's `operatingMode`/`scheduleMode` fields, replacing a switch that returned `Heat` in every branch
+
 ## [1.2.28] - 2026-09-14
 
 ### Fixed

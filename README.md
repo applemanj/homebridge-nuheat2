@@ -64,6 +64,7 @@ The equivalent JSON looks like this:
   "groups": [{ "groupName": "Main Floor", "disabled": false }],
   "exposeScheduleSwitches": false,
   "enableNotifications": true,
+  "enableThermostatModeControl": false,
   "holdLength": 1440,
   "refresh": 60
 }
@@ -86,6 +87,7 @@ The equivalent JSON looks like this:
 - `holdLength`: Hold duration in minutes, default `1440`. Values are clamped from `0` to `1440`
 - `refresh`: Poll interval in seconds, default `60`. Values lower than `30` are raised to `30` to reduce API traffic
 - `enableNotifications`: Enables Nuheat SignalR notifications for faster updates. Defaults to `true`; set to `false` only while troubleshooting
+- `enableThermostatModeControl`: Adds `Off` and `Auto` target states to each thermostat so HomeKit can request standby or resume the schedule. Defaults to `false`. Experimental; see [Thermostat Mode Control](#thermostat-mode-control)
 - `debug`: Enables verbose Nuheat API, notification, and accessory logging. Defaults to `false`
 
 ### Hold Length Behavior
@@ -101,6 +103,22 @@ Away-mode switches map directly to Nuheat's group away mode. Turning a switch on
 What the thermostats do while a group is in away mode is decided by Nuheat's servers, not by this plugin. Depending on the account and firmware, Nuheat may report the affected thermostats as being in **Standby** rather than showing an explicit "Away" state. Standby is Nuheat's own representation of the away setpoint; the plugin does not request standby and cannot request it, because Nuheat's thermostat update API has no operating-mode field.
 
 If you need a specific temperature held while you are away, set that temperature on the thermostat itself. The plugin will hold it for `holdLength` minutes, or permanently when `holdLength` is `1440`.
+
+### Thermostat Mode Control
+
+By default each thermostat advertises only `Heat` as a target state, because Nuheat's v1 thermostat update API has no operating-mode field and therefore cannot request standby.
+
+Setting `enableThermostatModeControl` to `true` adds `Off` and `Auto` to the target states and routes those requests through Nuheat's v2 mode API:
+
+| HomeKit target | Nuheat v2 request |
+| --- | --- |
+| `Off` | `PUT /api/v2/Mode/Manual` at the minimum target temperature (10 °C / 50 °F) |
+| `Heat` | `PUT /api/v2/Mode/Hold` at the current target temperature, or `Mode/Manual` when `holdLength` is `1440` |
+| `Auto` | `PUT /api/v2/Mode/Auto`, resuming the schedule |
+
+Reads still come from the v1 API, which is the only version that reports `groupId` (needed for away mode) and `operatingMode`/`scheduleMode`. The plugin derives the HomeKit target state from those fields: an auto schedule combined with a manual operating mode is reported as `Off` (Nuheat's Standby), a hold is reported as `Heat`, and a normal scheduled run is reported as `Auto`.
+
+This option is **experimental**. Nuheat has no explicit "off" concept, so `Off` is implemented as a permanent manual setpoint at the minimum temperature. The mapping above is inferred from Nuheat's API rather than verified against hardware, and it is unknown whether a v2 mode write is immediately reflected in a v1 read. Leave it disabled unless you want HomeKit to drive thermostat mode.
 
 ### Device Discovery
 

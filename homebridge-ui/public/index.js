@@ -12,6 +12,9 @@ const elements = {
   holdLength: document.getElementById("hold-length"),
   refresh: document.getElementById("refresh"),
   enableNotifications: document.getElementById("enable-notifications"),
+  enableThermostatModeControl: document.getElementById(
+    "enable-thermostat-mode-control",
+  ),
   debug: document.getElementById("debug"),
   saveAccount: document.getElementById("save-account"),
   addDevice: document.getElementById("add-device"),
@@ -102,6 +105,7 @@ function createDefaultConfig() {
     autoPopulateAwayModeSwitches: false,
     exposeScheduleSwitches: false,
     enableNotifications: true,
+    enableThermostatModeControl: false,
     holdLength: 1440,
     refresh: 60,
     debug: false,
@@ -126,6 +130,9 @@ function renderConfig(config) {
   elements.holdLength.value = String(normalizeHoldLength(config.holdLength));
   elements.refresh.value = String(normalizeRefresh(config.refresh));
   elements.enableNotifications.checked = config.enableNotifications !== false;
+  elements.enableThermostatModeControl.checked = Boolean(
+    config.enableThermostatModeControl,
+  );
   elements.debug.checked = Boolean(config.debug);
 
   updateStatuses();
@@ -313,6 +320,9 @@ async function saveBehavior() {
     holdLength,
     refresh,
     enableNotifications: Boolean(elements.enableNotifications.checked),
+    enableThermostatModeControl: Boolean(
+      elements.enableThermostatModeControl.checked,
+    ),
     debug: Boolean(elements.debug.checked),
   });
   showToast("success", "Behavior settings saved.");
@@ -438,6 +448,10 @@ function renderDiagnostics() {
       "Notifications",
       config.enableNotifications === false ? "disabled" : "enabled",
     ],
+    [
+      "Mode Control",
+      config.enableThermostatModeControl ? "Off / Auto enabled" : "heat only",
+    ],
     ["Debug Logs", config.debug ? "enabled" : "disabled"],
   ]);
 }
@@ -475,6 +489,9 @@ function getDraftConfig() {
     holdLength: normalizeHoldLength(elements.holdLength.value),
     refresh: normalizeRefresh(elements.refresh.value),
     enableNotifications: Boolean(elements.enableNotifications.checked),
+    enableThermostatModeControl: Boolean(
+      elements.enableThermostatModeControl.checked,
+    ),
     debug: Boolean(elements.debug.checked),
   };
 }
@@ -568,6 +585,7 @@ function bindEvents() {
     elements.holdLength,
     elements.refresh,
     elements.enableNotifications,
+    elements.enableThermostatModeControl,
     elements.debug,
   ].forEach((element) => {
     element.addEventListener("input", () => {

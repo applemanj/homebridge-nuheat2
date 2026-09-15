@@ -147,6 +147,19 @@
     </label>
 
     <label class="checkbox">
+      <input id="enable-thermostat-mode-control" type="checkbox" />
+      <span>
+        Enable thermostat mode control (Off / Auto)
+        <small>
+          Adds Off and Auto target states to each thermostat using Nuheat's v2
+          mode API, so HomeKit can request standby or resume the schedule.
+          Experimental; leave off unless you want HomeKit to drive thermostat
+          mode.
+        </small>
+      </span>
+    </label>
+
+    <label class="checkbox">
       <input id="debug" type="checkbox" />
       <span>
         Enable debug logging

@@ -25,13 +25,16 @@ import {
   buildNuHeatApiUrl,
 } from "./settings";
 import {
+  HEATING_MODE,
   SCHEDULE_MODE,
+  TEMPERATURE_TYPE,
   normalizeAccount,
   normalizeEnergyUsage,
   normalizeGroup,
   normalizeSchedule,
   normalizeThermostat,
 } from "./NuHeatModels";
+import type { HeatingMode } from "./NuHeatModels";
 import type { LoggerLike } from "./types";
 
 interface HeadersLike {
@@ -82,6 +85,11 @@ interface TokenResponse {
 }
 
 const OAUTH_SCOPES = ["openapi", "openid", "profile", "offline_access"] as const;
+
+interface ThermostatModeOptions {
+  setPointTemp?: number | string;
+  holdLength?: number;
+}
 
 class NuHeatAPI {
   email: string;
@@ -269,6 +277,53 @@ class NuHeatAPI {
       serialNumber,
       scheduleMode: SCHEDULE_MODE.AUTO,
     });
+  }
+
+  /**
+   * The v1 thermostat update model has no operating mode, so it cannot request
+   * standby. The v2 mode endpoints can, and they share the same account,
+   * identity provider, and `openapi` scope as v1.
+   */
+  async setThermostatMode(
+    serialNumber: string,
+    mode: HeatingMode,
+    options: ThermostatModeOptions = {},
+  ): Promise<any> {
+    let callURL: string;
+    const callBody: Record<string, number | string> = { serialNumber };
+
+    if (mode === HEATING_MODE.AUTO) {
+      callURL = buildNuHeatApiUrl("/api/v2/Mode/Auto");
+    } else if (mode === HEATING_MODE.HOLD) {
+      callURL = buildNuHeatApiUrl("/api/v2/Mode/Hold");
+      if (options.holdLength && options.holdLength > 0) {
+        callBody.holdUntil = new Date(
+          Date.now() + options.holdLength * 60 * 1000,
+        ).toISOString();
+      }
+    } else {
+      // NuHeat has no off; standby is a permanent manual setpoint.
+      callURL = buildNuHeatApiUrl("/api/v2/Mode/Manual");
+    }
+
+    if (options.setPointTemp !== undefined) {
+      callBody.temperature = Number(options.setPointTemp);
+      callBody.temperatureType = TEMPERATURE_TYPE.ABSOLUTE;
+    }
+
+    this.log.debug(
+      "NuHeatAPI: Setting thermostat " +
+        serialNumber +
+        " to " +
+        mode +
+        " mode.",
+    );
+    const callOptions: FetchOptions = {
+      body: JSON.stringify(callBody),
+      method: "PUT",
+    };
+
+    return await this.makeAPICall(callURL, callOptions);
   }
 
   async updateThermostat(thermostatUpdate: Record<string, unknown>): Promise<any> {

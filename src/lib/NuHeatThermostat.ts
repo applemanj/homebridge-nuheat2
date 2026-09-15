@@ -1,5 +1,10 @@
 import NuHeatAPI = require("./NuHeatAPI");
-import { OPERATING_MODE, SCHEDULE_MODE } from "./NuHeatModels";
+import {
+  HEATING_MODE,
+  SCHEDULE_MODE,
+  deriveHeatingMode,
+} from "./NuHeatModels";
+import type { HeatingMode } from "./NuHeatModels";
 import type {
   AccessoryLike,
   AccessoryThermostat,
@@ -21,6 +26,7 @@ class NuHeatThermostat {
   accessory: AccessoryLike;
   NuHeatAPI: NuHeatAPI;
   temperatureScale?: string;
+  enableThermostatModeControl: boolean;
 
   constructor(
     log: LoggerLike,
@@ -30,6 +36,7 @@ class NuHeatThermostat {
     NuHeatAPI: NuHeatAPI,
     homebridge: HomebridgeLike,
     temperatureScale?: string,
+    enableThermostatModeControl = false,
   ) {
     Characteristic = homebridge.hap.Characteristic;
     ThermostatService = homebridge.hap.Service.Thermostat;
@@ -39,6 +46,7 @@ class NuHeatThermostat {
     this.accessory = accessory;
     this.NuHeatAPI = NuHeatAPI;
     this.temperatureScale = temperatureScale;
+    this.enableThermostatModeControl = enableThermostatModeControl;
 
     this.accessory
       .getService(homebridge.hap.Service.AccessoryInformation)
@@ -59,10 +67,18 @@ class NuHeatThermostat {
     const thermostatService = this.accessory.getService(ThermostatService);
 
     this.log.info("holdLength: " + this.holdLength, this.deviceData.name);
+    const targetHeatingCoolingStates = this.enableThermostatModeControl
+      ? [
+          Characteristic.TargetHeatingCoolingState.OFF,
+          Characteristic.TargetHeatingCoolingState.HEAT,
+          Characteristic.TargetHeatingCoolingState.AUTO,
+        ]
+      : [Characteristic.TargetHeatingCoolingState.HEAT];
+
     thermostatService
       .getCharacteristic(Characteristic.TargetHeatingCoolingState)
       .setProps({
-        validValues: [Characteristic.TargetHeatingCoolingState.HEAT],
+        validValues: targetHeatingCoolingStates,
       })
       .on("set", this.setTargetHeatingCooling.bind(this));
     thermostatService.getCharacteristic(Characteristic.CurrentTemperature).setProps({
@@ -83,6 +99,11 @@ class NuHeatThermostat {
     value: number,
     callback: Callback,
   ): Promise<void> {
+    if (this.enableThermostatModeControl) {
+      await this.setThermostatModeFromHomeKit(value, callback);
+      return;
+    }
+
     if (value !== Characteristic.TargetHeatingCoolingState.OFF) {
       callback(null);
       void this.updateAccessory();
@@ -110,6 +131,70 @@ class NuHeatThermostat {
     }
 
     this.updateValues(response);
+    callback(null);
+  }
+
+  /**
+   * The v1 update model cannot request standby or an indefinite auto schedule,
+   * so mode changes go through the v2 mode endpoints. Those writes return no
+   * content, so the authoritative state is re-read through v1 afterwards.
+   */
+  async setThermostatModeFromHomeKit(
+    value: number,
+    callback: Callback,
+  ): Promise<void> {
+    const { OFF, HEAT, AUTO } = Characteristic.TargetHeatingCoolingState;
+    let mode: HeatingMode;
+    const options: { setPointTemp?: number | string; holdLength?: number } = {};
+
+    if (value === OFF) {
+      mode = HEATING_MODE.OFF;
+      options.setPointTemp = this.toNuHeatTemperature(MIN_TARGET_TEMPERATURE_C);
+      this.log.info(
+        "Setting the thermostat to standby (minimum target temperature).",
+        this.deviceData.name,
+      );
+    } else if (value === AUTO) {
+      mode = HEATING_MODE.AUTO;
+      this.log.info("Resuming the NuHeat schedule.", this.deviceData.name);
+    } else if (value === HEAT) {
+      options.setPointTemp =
+        this.deviceData.setPointTemp ??
+        this.toNuHeatTemperature(MIN_TARGET_TEMPERATURE_C);
+      if (this.holdLength >= 1440) {
+        mode = HEATING_MODE.MANUAL;
+      } else {
+        mode = HEATING_MODE.HOLD;
+        if (this.holdLength > 0) {
+          options.holdLength = this.holdLength;
+        }
+      }
+      this.log.info(
+        "Holding the thermostat target temperature.",
+        this.deviceData.name,
+      );
+    } else {
+      this.log.error(
+        "Unsupported target heating state " + value,
+        this.deviceData.name,
+      );
+      callback(new Error("Error: setTargetHeatingCooling"));
+      return;
+    }
+
+    const response = await this.NuHeatAPI.setThermostatMode(
+      this.deviceData.serialNumber ?? "",
+      mode,
+      options,
+    );
+
+    if (!response) {
+      this.log.error("Error setting thermostat mode", this.deviceData.name);
+      callback(new Error("Error: setTargetHeatingCooling"));
+      return;
+    }
+
+    await this.updateAccessory();
     callback(null);
   }
 
@@ -229,14 +314,24 @@ class NuHeatThermostat {
   }
 
   toHomeBridgeHeatingCoolingState(newValues: AccessoryThermostat): number {
-    if (!this.isOnline(newValues)) {
-      return Characteristic.TargetHeatingCoolingState.OFF;
+    if (!this.enableThermostatModeControl) {
+      if (!this.isOnline(newValues)) {
+        return Characteristic.TargetHeatingCoolingState.OFF;
+      }
+
+      // The v1 read model cannot distinguish standby from a scheduled run, and
+      // the characteristic only advertises heat, so heat is the only safe
+      // report.
+      return Characteristic.TargetHeatingCoolingState.HEAT;
     }
 
-    switch (newValues.operatingMode) {
-      case OPERATING_MODE.AUTO:
-      case OPERATING_MODE.MANUAL:
-        return Characteristic.TargetHeatingCoolingState.HEAT;
+    switch (deriveHeatingMode(newValues)) {
+      case HEATING_MODE.OFF:
+        return Characteristic.TargetHeatingCoolingState.OFF;
+      case HEATING_MODE.AUTO:
+        return Characteristic.TargetHeatingCoolingState.AUTO;
+      case HEATING_MODE.MANUAL:
+      case HEATING_MODE.HOLD:
       default:
         return Characteristic.TargetHeatingCoolingState.HEAT;
     }

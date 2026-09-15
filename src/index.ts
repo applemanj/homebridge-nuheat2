@@ -310,6 +310,7 @@ class NuHeatPlatform {
           this.NuHeatAPI,
           Homebridge,
           this.account?.temperatureScale,
+          this.config.enableThermostatModeControl === true,
         );
         entry!.existsInConfig = true;
         this.log.info(

@@ -99,6 +99,7 @@ export interface PlatformConfig {
   autoPopulateAwayModeSwitches?: boolean;
   exposeScheduleSwitches?: boolean;
   enableNotifications?: boolean;
+  enableThermostatModeControl?: boolean;
 }
 
 export interface AccessoryEntry<TAccessory = any> {

@@ -196,6 +196,55 @@ function createResponse({ status = 200, url = settings_1.NUHEAT_API_AUTHORIZE_UR
     strict_1.default.equal(postedForm.get("__RequestVerificationToken"), "login-token");
     strict_1.default.equal(postedForm.get("ReturnUrl"), "/connect/authorize/callback");
 });
+(0, node_test_1.default)("setHeatSetpoint does not log the raw thermostat payload at info level", async () => {
+    const messages = [];
+    const log = {
+        info(message) {
+            messages.push(message);
+        },
+        debug() { },
+        error() { },
+        warn() { },
+    };
+    const api = new NuHeatAPI("user@example.com", "password", log);
+    api.refreshAccessToken = async () => true;
+    api.fetch = async () => createResponse({
+        status: 204,
+        url: "https://api.nam.mynuheat.com/api/v1/Thermostat",
+    });
+    await api.setHeatSetpoint("123456789", 20, 1440);
+    strict_1.default.equal(messages.some((message) => message.includes("serialNumber")), false);
+    strict_1.default.equal(messages.some((message) => message.includes("scheduleMode")), false);
+});
+(0, node_test_1.default)("setThermostatMode targets the v2 mode endpoints", async () => {
+    const calls = [];
+    const api = new NuHeatAPI("user@example.com", "password", (0, helpers_1.createLogStub)());
+    api.refreshAccessToken = async () => true;
+    api.fetch = async (url, options) => {
+        calls.push({ url, body: JSON.parse(options.body) });
+        return createResponse({ status: 204, url });
+    };
+    strict_1.default.equal(await api.setThermostatMode("123456789", "auto"), true);
+    strict_1.default.equal(await api.setThermostatMode("123456789", "manual", { setPointTemp: 20 }), true);
+    strict_1.default.equal(await api.setThermostatMode("123456789", "hold", {
+        setPointTemp: 20,
+        holdLength: 60,
+    }), true);
+    strict_1.default.equal(calls[0].url, (0, settings_1.buildNuHeatApiUrl)("/api/v2/Mode/Auto"));
+    strict_1.default.deepEqual(calls[0].body, { serialNumber: "123456789" });
+    strict_1.default.equal(calls[1].url, (0, settings_1.buildNuHeatApiUrl)("/api/v2/Mode/Manual"));
+    strict_1.default.deepEqual(calls[1].body, {
+        serialNumber: "123456789",
+        temperature: 20,
+        temperatureType: 0,
+    });
+    strict_1.default.equal(calls[2].url, (0, settings_1.buildNuHeatApiUrl)("/api/v2/Mode/Hold"));
+    strict_1.default.equal(calls[2].body.serialNumber, "123456789");
+    strict_1.default.equal(calls[2].body.temperature, 20);
+    strict_1.default.equal(calls[2].body.temperatureType, 0);
+    strict_1.default.equal(typeof calls[2].body.holdUntil, "string");
+    strict_1.default.equal(Number.isNaN(Date.parse(calls[2].body.holdUntil)), false);
+});
 (0, node_test_1.default)("OAuth consent follows Nuheat HTML browser redirects with consent cookies", async () => {
     const api = new NuHeatAPI("user@example.com", "password", (0, helpers_1.createLogStub)());
     const authResponse = createResponse({

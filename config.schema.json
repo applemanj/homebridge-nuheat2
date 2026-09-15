@@ -95,6 +95,12 @@
         "default": false,
         "description": "Create one switch per thermostat. The switch is on when the thermostat follows its Nuheat schedule and can be turned on to resume the schedule."
       },
+      "enableThermostatModeControl": {
+        "title": "Enable Thermostat Mode Control (Off/Auto)",
+        "type": "boolean",
+        "default": false,
+        "description": "Adds Off and Auto target states to each thermostat using Nuheat's v2 mode API, so HomeKit can request standby or resume the schedule. Experimental: leave disabled unless you want HomeKit to drive thermostat mode."
+      },
       "holdLength": {
         "title": "Hold Length (minutes)",
         "type": "integer",
@@ -152,6 +158,7 @@
         "holdLength",
         "refresh",
         "enableNotifications",
+        "enableThermostatModeControl",
         "debug"
       ]
     }
