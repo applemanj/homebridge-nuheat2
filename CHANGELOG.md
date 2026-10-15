@@ -4,6 +4,8 @@ All notable changes to this project should be documented in this file
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-10-15
+
 ### Added
 
 - Opt-in `enableThermostatModeControl` setting that adds `Off` and `Auto` target states to each thermostat and routes those requests through Nuheat's v2 mode API (`PUT /api/v2/Mode/Manual`, `Mode/Hold`, `Mode/Auto`). Defaults to `false`, so existing installations keep advertising heat only
@@ -11,6 +13,11 @@ All notable changes to this project should be documented in this file
 ### Changed
 
 - Derive the HomeKit target state from Nuheat's `operatingMode`/`scheduleMode` fields, replacing a switch that returned `Heat` in every branch
+
+### Fixed
+
+- Stop pushing the empty `204 No Content` response from setpoint writes into HomeKit, which briefly flashed `0.2 C` / `10 C` readings and a wrong target state after every change; write paths now re-read the thermostat and non-object payloads are ignored
+- Stop sending a stale cached setpoint with heat-mode requests, which could silently clobber a concurrent setpoint write from the Home app; heat requests now omit the optional temperature field
 
 ## [1.2.28] - 2026-09-14
 
