@@ -74,6 +74,15 @@ test("off requests are translated to the minimum NuHeat target temperature", asy
           operatingMode: 2,
         };
       },
+      async refreshThermostat() {
+        return {
+          Online: true,
+          currentTemperature: 1209,
+          setPointTemp: 589,
+          isHeating: false,
+          operatingMode: 2,
+        };
+      },
     } as any,
     homebridge,
   );
@@ -262,4 +271,147 @@ test("mode control routes off and auto requests through the v2 mode API", async 
   assert.equal(calls[0].options.setPointTemp, thermostat.toNuHeatTemperature(10));
   assert.equal(calls[1].mode, "auto");
   assert.equal(calls[2].mode, "manual");
+  // Heat requests must not carry a setpoint: HomeKit sends mode and
+  // temperature as concurrent writes, and a stale setpoint here would clobber
+  // the setpoint write that lands right after it.
+  assert.equal(calls[2].options.setPointTemp, undefined);
+});
+
+test("mode control heat requests do not clobber a concurrent setpoint write", async () => {
+  const calls: Array<{ mode: string; options: any }> = [];
+  const { Characteristic, thermostat } = createModeControlThermostat({
+    async setThermostatMode(_serialNumber: string, mode: string, options: any) {
+      calls.push({ mode, options });
+      return true;
+    },
+    async setHeatSetpoint() {
+      return true;
+    },
+    async refreshThermostat() {
+      return {
+        Online: true,
+        currentTemperature: 1209,
+        setPointTemp: 1517,
+        isHeating: true,
+        operatingMode: 1,
+        scheduleMode: 3,
+      };
+    },
+  });
+
+  // Seed a stale cached setpoint, as a poll would leave behind.
+  thermostat.updateValues({
+    Online: true,
+    currentTemperature: 1209,
+    setPointTemp: 589,
+    isHeating: false,
+    operatingMode: 1,
+    scheduleMode: 1,
+  });
+
+  await new Promise<void>((resolve, reject) => {
+    void thermostat.setTargetHeatingCooling(
+      Characteristic.TargetHeatingCoolingState.HEAT,
+      (error) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+        resolve();
+      },
+    );
+  });
+
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].mode, "manual");
+  assert.equal("setPointTemp" in calls[0].options, false);
+});
+
+test("setpoint writes re-read instead of pushing the empty 204 response", async () => {
+  const { accessory, homebridge, Characteristic } =
+    createThermostatHomebridgeStub();
+  const refreshes: Array<string | undefined> = [];
+  const thermostat = new NuHeatThermostat(
+    createLogStub(),
+    { serialNumber: "130", swVersion: "1.0", name: " " },
+    1440,
+    accessory,
+    {
+      async setHeatSetpoint() {
+        // The v1 write returns 204 No Content, which resolves to `true`.
+        return true;
+      },
+      async refreshThermostat(serialNumber: string) {
+        refreshes.push(serialNumber);
+        return {
+          Online: true,
+          currentTemperature: 1209,
+          setPointTemp: 1517,
+          isHeating: true,
+          operatingMode: 1,
+          scheduleMode: 3,
+        };
+      },
+    } as any,
+    homebridge,
+  );
+
+  await new Promise<void>((resolve, reject) => {
+    void thermostat.setTargetTemperature(27, (error) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+      resolve();
+    });
+  });
+
+  assert.deepEqual(refreshes, ["130"]);
+  const currentTemperature = accessory
+    .getService(homebridge.hap.Service.Thermostat)
+    .getCharacteristic(Characteristic.CurrentTemperature).value;
+  const targetTemperature = accessory
+    .getService(homebridge.hap.Service.Thermostat)
+    .getCharacteristic(Characteristic.TargetTemperature).value;
+  assert.equal(currentTemperature, 12.2);
+  assert.equal(targetTemperature, 15.3);
+});
+
+test("updateValues ignores non-object payloads such as the 204 literal", () => {
+  const { accessory, homebridge, Characteristic } =
+    createThermostatHomebridgeStub();
+  const thermostat = new NuHeatThermostat(
+    createLogStub(),
+    { serialNumber: "131", swVersion: "1.0", name: " " },
+    1440,
+    accessory,
+    {} as any,
+    homebridge,
+  );
+
+  thermostat.updateValues({
+    Online: true,
+    currentTemperature: 1209,
+    setPointTemp: 1517,
+    isHeating: true,
+    operatingMode: 1,
+  } as any);
+
+  const before = accessory
+    .getService(homebridge.hap.Service.Thermostat)
+    .getCharacteristic(Characteristic.CurrentTemperature).value;
+
+  // A 204 response resolves to `true`; it must not replace thermostat state.
+  thermostat.updateValues(true as any);
+
+  const after = accessory
+    .getService(homebridge.hap.Service.Thermostat)
+    .getCharacteristic(Characteristic.CurrentTemperature).value;
+
+  assert.equal(before, 12.2);
+  assert.equal(after, 12.2);
+  assert.equal(
+    (thermostat as any).deviceData.currentTemperature,
+    1209,
+  );
 });

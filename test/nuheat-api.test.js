@@ -225,25 +225,31 @@ function createResponse({ status = 200, url = settings_1.NUHEAT_API_AUTHORIZE_UR
         return createResponse({ status: 204, url });
     };
     strict_1.default.equal(await api.setThermostatMode("123456789", "auto"), true);
-    strict_1.default.equal(await api.setThermostatMode("123456789", "manual", { setPointTemp: 20 }), true);
+    strict_1.default.equal(await api.setThermostatMode("123456789", "manual"), true);
     strict_1.default.equal(await api.setThermostatMode("123456789", "hold", {
-        setPointTemp: 20,
         holdLength: 60,
     }), true);
+    strict_1.default.equal(await api.setThermostatMode("123456789", "manual", { setPointTemp: 20 }), true);
     strict_1.default.equal(calls[0].url, (0, settings_1.buildNuHeatApiUrl)("/api/v2/Mode/Auto"));
     strict_1.default.deepEqual(calls[0].body, { serialNumber: "123456789" });
+    // Heat requests omit the setpoint so a concurrent v1 setpoint write cannot
+    // be clobbered by a stale cached value.
     strict_1.default.equal(calls[1].url, (0, settings_1.buildNuHeatApiUrl)("/api/v2/Mode/Manual"));
-    strict_1.default.deepEqual(calls[1].body, {
+    strict_1.default.deepEqual(calls[1].body, { serialNumber: "123456789" });
+    strict_1.default.equal(calls[2].url, (0, settings_1.buildNuHeatApiUrl)("/api/v2/Mode/Hold"));
+    strict_1.default.deepEqual(calls[2].body, {
+        serialNumber: "123456789",
+        holdUntil: calls[2].body.holdUntil,
+    });
+    strict_1.default.equal(typeof calls[2].body.holdUntil, "string");
+    strict_1.default.equal(Number.isNaN(Date.parse(calls[2].body.holdUntil)), false);
+    // Standby (off) still pins the minimum setpoint.
+    strict_1.default.equal(calls[3].url, (0, settings_1.buildNuHeatApiUrl)("/api/v2/Mode/Manual"));
+    strict_1.default.deepEqual(calls[3].body, {
         serialNumber: "123456789",
         temperature: 20,
         temperatureType: 0,
     });
-    strict_1.default.equal(calls[2].url, (0, settings_1.buildNuHeatApiUrl)("/api/v2/Mode/Hold"));
-    strict_1.default.equal(calls[2].body.serialNumber, "123456789");
-    strict_1.default.equal(calls[2].body.temperature, 20);
-    strict_1.default.equal(calls[2].body.temperatureType, 0);
-    strict_1.default.equal(typeof calls[2].body.holdUntil, "string");
-    strict_1.default.equal(Number.isNaN(Date.parse(calls[2].body.holdUntil)), false);
 });
 (0, node_test_1.default)("OAuth consent follows Nuheat HTML browser redirects with consent cookies", async () => {
     const api = new NuHeatAPI("user@example.com", "password", (0, helpers_1.createLogStub)());

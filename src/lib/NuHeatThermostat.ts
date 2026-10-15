@@ -130,7 +130,9 @@ class NuHeatThermostat {
       return;
     }
 
-    this.updateValues(response);
+    // The v1 write returns 204 with no content, so re-read the authoritative
+    // state instead of pushing the empty response into HomeKit.
+    await this.updateAccessory();
     callback(null);
   }
 
@@ -158,9 +160,10 @@ class NuHeatThermostat {
       mode = HEATING_MODE.AUTO;
       this.log.info("Resuming the NuHeat schedule.", this.deviceData.name);
     } else if (value === HEAT) {
-      options.setPointTemp =
-        this.deviceData.setPointTemp ??
-        this.toNuHeatTemperature(MIN_TARGET_TEMPERATURE_C);
+      // Deliberately omit the setpoint: the v2 mode body's temperature field
+      // is optional, and HomeKit sends mode and temperature as separate
+      // concurrent writes. Sending a stale setpoint here can clobber the
+      // setpoint write that lands right after this one.
       if (this.holdLength >= 1440) {
         mode = HEATING_MODE.MANUAL;
       } else {
@@ -221,7 +224,9 @@ class NuHeatThermostat {
       this.log.error("Error setting target temperature", this.deviceData.name);
       callback(new Error("Error: setTargetTemperature"));
     } else {
-      this.updateValues(response);
+      // The v1 write returns 204 with no content, so re-read the authoritative
+      // state instead of pushing the empty response into HomeKit.
+      await this.updateAccessory();
       callback(null);
     }
   }
@@ -238,6 +243,17 @@ class NuHeatThermostat {
   }
 
   updateValues(newValues: AccessoryThermostat): void {
+    // Write calls that return 204 No Content resolve to a literal `true`.
+    // That is not thermostat data; pushing it would flash garbage temperatures
+    // and blank the cached device data until the next poll.
+    if (!newValues || typeof newValues !== "object") {
+      this.log.debug(
+        "Ignoring a thermostat update without payload data",
+        this.deviceData.name,
+      );
+      return;
+    }
+
     if (this.isOnline(newValues)) {
       this.updateTemperatureDisplayUnits();
 

@@ -297,12 +297,15 @@ test("setThermostatMode targets the v2 mode endpoints", async () => {
   };
 
   assert.equal(await api.setThermostatMode("123456789", "auto"), true);
-  assert.equal(await api.setThermostatMode("123456789", "manual", { setPointTemp: 20 }), true);
+  assert.equal(await api.setThermostatMode("123456789", "manual"), true);
   assert.equal(
     await api.setThermostatMode("123456789", "hold", {
-      setPointTemp: 20,
       holdLength: 60,
     }),
+    true,
+  );
+  assert.equal(
+    await api.setThermostatMode("123456789", "manual", { setPointTemp: 20 }),
     true,
   );
 
@@ -312,19 +315,26 @@ test("setThermostatMode targets the v2 mode endpoints", async () => {
   );
   assert.deepEqual(calls[0].body, { serialNumber: "123456789" });
 
+  // Heat requests omit the setpoint so a concurrent v1 setpoint write cannot
+  // be clobbered by a stale cached value.
   assert.equal(calls[1].url, buildNuHeatApiUrl("/api/v2/Mode/Manual"));
-  assert.deepEqual(calls[1].body, {
+  assert.deepEqual(calls[1].body, { serialNumber: "123456789" });
+
+  assert.equal(calls[2].url, buildNuHeatApiUrl("/api/v2/Mode/Hold"));
+  assert.deepEqual(calls[2].body, {
+    serialNumber: "123456789",
+    holdUntil: calls[2].body.holdUntil,
+  });
+  assert.equal(typeof calls[2].body.holdUntil, "string");
+  assert.equal(Number.isNaN(Date.parse(calls[2].body.holdUntil)), false);
+
+  // Standby (off) still pins the minimum setpoint.
+  assert.equal(calls[3].url, buildNuHeatApiUrl("/api/v2/Mode/Manual"));
+  assert.deepEqual(calls[3].body, {
     serialNumber: "123456789",
     temperature: 20,
     temperatureType: 0,
   });
-
-  assert.equal(calls[2].url, buildNuHeatApiUrl("/api/v2/Mode/Hold"));
-  assert.equal(calls[2].body.serialNumber, "123456789");
-  assert.equal(calls[2].body.temperature, 20);
-  assert.equal(calls[2].body.temperatureType, 0);
-  assert.equal(typeof calls[2].body.holdUntil, "string");
-  assert.equal(Number.isNaN(Date.parse(calls[2].body.holdUntil)), false);
 });
 
 test("OAuth consent follows Nuheat HTML browser redirects with consent cookies", async () => {
