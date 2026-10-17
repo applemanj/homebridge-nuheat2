@@ -445,7 +445,19 @@ class NuHeatAPI {
     if (response.status === 204) {
       return true;
     }
-    const returnedData = await response.json();
+
+    let returnedData: any;
+    try {
+      returnedData = await response.json();
+    } catch (error) {
+      this.log.warn(
+        "NuHeatAPI: " +
+          this.describeRequest(callURL, callOptions) +
+          " returned a response that could not be parsed as JSON: " +
+          error,
+      );
+      return false;
+    }
 
     if (options.normalize) {
       if (options.normalizeArray && Array.isArray(returnedData)) {
@@ -949,7 +961,16 @@ class NuHeatAPI {
         return null;
       }
       this.tokenScope = redirectUrl.searchParams.get("scope") ?? "";
-      const token = (await response.json()) as TokenResponse;
+      let token: TokenResponse;
+      try {
+        token = (await response.json()) as TokenResponse;
+      } catch (error) {
+        this.log.warn(
+          "NuHeatAPI: The OAuth token response could not be parsed as JSON: " +
+            error,
+        );
+        return null;
+      }
       this.log.debug(
         "NuHeatAPI: OAuth access token received. Granted scopes: " +
           (token.scope || this.tokenScope || "unknown") +
@@ -978,7 +999,16 @@ class NuHeatAPI {
       return false;
     }
 
-    const token = (await response.json()) as TokenResponse;
+    let token: TokenResponse;
+    try {
+      token = (await response.json()) as TokenResponse;
+    } catch (error) {
+      this.log.warn(
+        "NuHeatAPI: The refreshed OAuth token response could not be parsed as JSON: " +
+          error,
+      );
+      return false;
+    }
     const previousRefreshToken = this.refreshToken;
     this.accessToken = token.access_token;
     this.accessTokenTimestamp = Date.now();

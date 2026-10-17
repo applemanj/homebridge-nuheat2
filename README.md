@@ -116,9 +116,9 @@ Setting `enableThermostatModeControl` to `true` adds `Off` and `Auto` to the tar
 | `Heat` | `PUT /api/v2/Mode/Hold` at the current target temperature, or `Mode/Manual` when `holdLength` is `1440` |
 | `Auto` | `PUT /api/v2/Mode/Auto`, resuming the schedule |
 
-Reads still come from the v1 API, which is the only version that reports `groupId` (needed for away mode) and `operatingMode`/`scheduleMode`. The plugin derives the HomeKit target state from those fields: an auto schedule combined with a manual operating mode is reported as `Off` (Nuheat's Standby), a hold is reported as `Heat`, and a normal scheduled run is reported as `Auto`.
+Reads still come from the v1 API, which is the only version that reports `groupId` (needed for away mode) and `operatingMode`/`scheduleMode`. The plugin derives the HomeKit target state from those fields: a manual or hold mode parked at the minimum target temperature is reported as `Off` (Nuheat's Standby — exactly how this plugin requests it), a warmer manual or hold setpoint is reported as `Heat`, and an auto schedule is reported as `Auto` regardless of the thermostat's operating mode.
 
-This option is **experimental**. Nuheat has no explicit "off" concept, so `Off` is implemented as a permanent manual setpoint at the minimum temperature. The mapping above is inferred from Nuheat's API rather than verified against hardware, and it is unknown whether a v2 mode write is immediately reflected in a v1 read. Leave it disabled unless you want HomeKit to drive thermostat mode.
+Nuheat has no explicit "off" concept, so `Off` is implemented as a permanent manual setpoint at the minimum temperature, and reads recognize that state by the parked setpoint. Mode writes through the v2 mode API are reflected in subsequent v1 reads, so a requested `Off` reads back as `Off`.
 
 ### Device Discovery
 

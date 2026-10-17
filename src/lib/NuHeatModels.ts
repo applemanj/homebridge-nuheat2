@@ -193,10 +193,33 @@ export function isThermostatOnline(thermostat: Thermostat): boolean {
   return true;
 }
 
+/** The minimum NuHeat target temperature, which the plugin uses for standby. */
+export const STANDBY_SETPOINT_C = 10;
+
+/** Converts a raw NuHeat temperature (e.g. `setPointTemp`) to Celsius. */
+export function fromNuHeatTemperature(raw: number): number {
+  return (((raw - 33) / 56 + 33 - 32) * 5) / 9;
+}
+
 /**
- * NuHeat has no "off". Standby is reported as operating mode MANUAL paired
- * with schedule mode AUTO; a real manual setpoint change always sends a hold
- * schedule mode.
+ * Standby is a manual or hold mode parked at the minimum target temperature,
+ * which is how this plugin requests it. Away mode reads back even lower, so
+ * anything at or below the standby setpoint counts.
+ */
+export function isStandbySetpoint(setPointTemp?: number | null): boolean {
+  if (setPointTemp === undefined || setPointTemp === null) {
+    return false;
+  }
+
+  const celsius = fromNuHeatTemperature(Number(setPointTemp));
+  return Number.isFinite(celsius) && celsius <= STANDBY_SETPOINT_C;
+}
+
+/**
+ * NuHeat has no "off". Standby is a manual or hold mode parked at the minimum
+ * target temperature; a genuine manual setpoint change always reads back
+ * warmer, and an auto schedule is a scheduled run regardless of the
+ * thermostat's operating mode.
  */
 export function deriveHeatingMode(thermostat: Thermostat): HeatingMode {
   if (!isThermostatOnline(thermostat)) {
@@ -206,23 +229,29 @@ export function deriveHeatingMode(thermostat: Thermostat): HeatingMode {
   const scheduleMode = Number(thermostat.scheduleMode);
 
   if (scheduleMode === SCHEDULE_MODE.HOLD) {
-    return HEATING_MODE.HOLD;
+    return isStandbySetpoint(thermostat.setPointTemp)
+      ? HEATING_MODE.OFF
+      : HEATING_MODE.HOLD;
   }
 
   if (scheduleMode === SCHEDULE_MODE.PERMANENT_HOLD) {
-    return HEATING_MODE.MANUAL;
+    return isStandbySetpoint(thermostat.setPointTemp)
+      ? HEATING_MODE.OFF
+      : HEATING_MODE.MANUAL;
   }
 
   if (scheduleMode === SCHEDULE_MODE.AUTO) {
-    return Number(thermostat.operatingMode) === OPERATING_MODE.MANUAL
-      ? HEATING_MODE.OFF
-      : HEATING_MODE.AUTO;
+    return HEATING_MODE.AUTO;
   }
 
   // Unknown schedule mode: report whatever the hardware tells us.
-  return Number(thermostat.operatingMode) === OPERATING_MODE.MANUAL
-    ? HEATING_MODE.MANUAL
-    : HEATING_MODE.AUTO;
+  if (Number(thermostat.operatingMode) === OPERATING_MODE.MANUAL) {
+    return isStandbySetpoint(thermostat.setPointTemp)
+      ? HEATING_MODE.OFF
+      : HEATING_MODE.MANUAL;
+  }
+
+  return HEATING_MODE.AUTO;
 }
 
 export function normalizeAccount(account: AccountInput = {}): Account {

@@ -251,6 +251,51 @@ function createResponse({ status = 200, url = settings_1.NUHEAT_API_AUTHORIZE_UR
         temperatureType: 0,
     });
 });
+(0, node_test_1.default)("non-JSON API responses fail gracefully instead of throwing", async () => {
+    const api = new NuHeatAPI("user@example.com", "password", (0, helpers_1.createLogStub)());
+    api.refreshAccessToken = async () => true;
+    api.fetch = async (url) => ({
+        status: 200,
+        ok: true,
+        statusText: "OK",
+        headers: {
+            get() {
+                return null;
+            },
+        },
+        url,
+        async json() {
+            throw new Error("Unexpected token < in JSON");
+        },
+        async text() {
+            return "<html>login page</html>";
+        },
+    });
+    const result = await api.refreshThermostat("123456789");
+    strict_1.default.equal(result, false);
+});
+(0, node_test_1.default)("non-JSON token refresh responses fail gracefully instead of throwing", async () => {
+    const api = new NuHeatAPI("user@example.com", "password", (0, helpers_1.createLogStub)());
+    api.fetch = async (url) => ({
+        status: 200,
+        ok: true,
+        statusText: "OK",
+        headers: {
+            get() {
+                return null;
+            },
+        },
+        url,
+        async json() {
+            throw new Error("Unexpected token < in JSON");
+        },
+        async text() {
+            return "<html>login page</html>";
+        },
+    });
+    strict_1.default.equal(await api.getRefreshedAccessToken(), false);
+    strict_1.default.equal(api.accessToken, null);
+});
 (0, node_test_1.default)("OAuth consent follows Nuheat HTML browser redirects with consent cookies", async () => {
     const api = new NuHeatAPI("user@example.com", "password", (0, helpers_1.createLogStub)());
     const authResponse = createResponse({

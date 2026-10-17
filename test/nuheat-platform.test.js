@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const registerPlatform = require("../index");
+const NuHeatGroup = require("../lib/NuHeatGroup");
 const helpers_1 = require("./support/helpers");
 class PlatformAccessoryStub extends helpers_1.FakeAccessory {
     UUID;
@@ -74,4 +75,24 @@ test("group allow-list still filters switches when all-groups is disabled", asyn
     });
     await platform.setupGroups();
     assert.deepEqual(registeredAccessories.map((accessory) => accessory.UUID), ["group-away"]);
+});
+test("failed away-mode writes acknowledge HomeKit and reconcile from the API", async () => {
+    const { accessory, homebridge, Characteristic } = (0, helpers_1.createSwitchHomebridgeStub)();
+    const group = new NuHeatGroup((0, helpers_1.createLogStub)(), { groupId: "group-away", groupName: "Away", awayMode: true }, accessory, {
+        async setAwayMode() {
+            return false;
+        },
+        async refreshGroup() {
+            return { groupId: "group-away", groupName: "Away", awayMode: false };
+        },
+    }, homebridge);
+    let callbackError = "unset";
+    await group.setAwayMode(true, (error) => {
+        callbackError = error ?? null;
+    });
+    assert.equal(callbackError, null);
+    const switchValue = accessory
+        .getService(homebridge.hap.Service.Switch)
+        .getCharacteristic(Characteristic.On).value;
+    assert.equal(switchValue, false);
 });

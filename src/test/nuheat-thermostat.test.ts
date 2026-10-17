@@ -199,7 +199,8 @@ test("mode control maps standby and schedule reads onto HomeKit states", () => {
       .getService(homebridge.hap.Service.Thermostat)
       .getCharacteristic(Characteristic.TargetHeatingCoolingState).value;
 
-  // Auto schedule + manual operating mode is Nuheat standby.
+  // An auto schedule is a scheduled run even when the thermostat reports a
+  // manual operating mode; standby is identified by the setpoint instead.
   thermostat.updateValues({
     Online: true,
     currentTemperature: 1209,
@@ -208,7 +209,7 @@ test("mode control maps standby and schedule reads onto HomeKit states", () => {
     operatingMode: 2,
     scheduleMode: 1,
   });
-  assert.equal(targetState(), Characteristic.TargetHeatingCoolingState.OFF);
+  assert.equal(targetState(), Characteristic.TargetHeatingCoolingState.AUTO);
 
   // Auto schedule + auto operating mode is a normal scheduled run.
   thermostat.updateValues({
@@ -231,6 +232,46 @@ test("mode control maps standby and schedule reads onto HomeKit states", () => {
     scheduleMode: 2,
   });
   assert.equal(targetState(), Characteristic.TargetHeatingCoolingState.HEAT);
+});
+
+test("mode control reads a requested off back as off", async () => {
+  const { accessory, homebridge, Characteristic, thermostat } =
+    createModeControlThermostat({
+      async setThermostatMode() {
+        return true;
+      },
+      async refreshThermostat() {
+        // Live capture from a Signature thermostat after a v2 off write: the
+        // setpoint lands at the 10 C minimum and the thermostat reads back
+        // as a permanent hold, which must map to HomeKit off.
+        return {
+          Online: true,
+          currentTemperature: 1209,
+          setPointTemp: 985,
+          isHeating: false,
+          operatingMode: 2,
+          scheduleMode: 3,
+        };
+      },
+    });
+
+  await new Promise<void>((resolve, reject) => {
+    void thermostat.setTargetHeatingCooling(
+      Characteristic.TargetHeatingCoolingState.OFF,
+      (error) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+        resolve();
+      },
+    );
+  });
+
+  const targetState = accessory
+    .getService(homebridge.hap.Service.Thermostat)
+    .getCharacteristic(Characteristic.TargetHeatingCoolingState).value;
+  assert.equal(targetState, Characteristic.TargetHeatingCoolingState.OFF);
 });
 
 test("mode control routes off and auto requests through the v2 mode API", async () => {

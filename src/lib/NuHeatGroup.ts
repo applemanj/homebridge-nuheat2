@@ -59,7 +59,10 @@ class NuHeatGroup {
     );
     if (!response) {
       this.log.error("Error setting away mode", this.deviceData.groupName);
-      callback(new Error("Error: setAwayMode"));
+      // Acknowledge the write so HomeKit does not wedge the switch, then
+      // re-read the group to reconcile the tile with the real state.
+      callback(null);
+      await this.updateAccessory();
     } else {
       this.updateValues({ ...this.deviceData, awayMode: value });
       callback(null);

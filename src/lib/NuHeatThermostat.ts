@@ -2,7 +2,9 @@ import NuHeatAPI = require("./NuHeatAPI");
 import {
   HEATING_MODE,
   SCHEDULE_MODE,
+  STANDBY_SETPOINT_C,
   deriveHeatingMode,
+  fromNuHeatTemperature,
 } from "./NuHeatModels";
 import type { HeatingMode } from "./NuHeatModels";
 import type {
@@ -16,7 +18,6 @@ import type {
 let Characteristic: Record<string, any>;
 let ThermostatService: unknown;
 
-const MIN_TARGET_TEMPERATURE_C = 10;
 const MAX_TARGET_TEMPERATURE_C = 38;
 
 class NuHeatThermostat {
@@ -117,7 +118,7 @@ class NuHeatThermostat {
 
     const response = await this.NuHeatAPI.setHeatSetpoint(
       this.deviceData.serialNumber ?? "",
-      this.toNuHeatTemperature(MIN_TARGET_TEMPERATURE_C),
+      this.toNuHeatTemperature(STANDBY_SETPOINT_C),
       this.holdLength,
     );
 
@@ -151,7 +152,7 @@ class NuHeatThermostat {
 
     if (value === OFF) {
       mode = HEATING_MODE.OFF;
-      options.setPointTemp = this.toNuHeatTemperature(MIN_TARGET_TEMPERATURE_C);
+      options.setPointTemp = this.toNuHeatTemperature(STANDBY_SETPOINT_C);
       this.log.info(
         "Setting the thermostat to standby (minimum target temperature).",
         this.deviceData.name,
@@ -206,7 +207,7 @@ class NuHeatThermostat {
       "Setting target temperature to " + value + " C",
       this.deviceData.name,
     );
-    if (value < MIN_TARGET_TEMPERATURE_C) value = MIN_TARGET_TEMPERATURE_C;
+    if (value < STANDBY_SETPOINT_C) value = STANDBY_SETPOINT_C;
     if (value > MAX_TARGET_TEMPERATURE_C) value = MAX_TARGET_TEMPERATURE_C;
     const heatSetPoint = this.toNuHeatTemperature(value);
     this.log.debug(
@@ -272,8 +273,8 @@ class NuHeatThermostat {
       let setPointTemperature = Number(
         this.toHBTemperature(newValues.setPointTemp ?? 0),
       );
-      if (setPointTemperature < MIN_TARGET_TEMPERATURE_C) {
-        setPointTemperature = MIN_TARGET_TEMPERATURE_C;
+      if (setPointTemperature < STANDBY_SETPOINT_C) {
+        setPointTemperature = STANDBY_SETPOINT_C;
       }
       if (setPointTemperature > MAX_TARGET_TEMPERATURE_C) {
         setPointTemperature = MAX_TARGET_TEMPERATURE_C;
@@ -326,7 +327,7 @@ class NuHeatThermostat {
   }
 
   toHBTemperature(temperature: number): string {
-    return ((((temperature - 33) / 56 + 33 - 32) * 5) / 9).toFixed(1);
+    return fromNuHeatTemperature(temperature).toFixed(1);
   }
 
   toHomeBridgeHeatingCoolingState(newValues: AccessoryThermostat): number {

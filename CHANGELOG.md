@@ -4,6 +4,15 @@ All notable changes to this project should be documented in this file
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-10-17
+
+### Fixed
+
+- Report a requested `Off` back to HomeKit as `Off`: standby is now derived from a manual or hold mode parked at the minimum target temperature, so the Home app no longer bounces the tile back to `Heat` after turning a thermostat off
+- Stop treating an auto schedule combined with a manual operating mode as `Off`; an auto schedule is always a scheduled run and is reported as `Auto`
+- Fail gracefully when a Nuheat API or OAuth token response is not valid JSON instead of throwing an unhandled parse error
+- Acknowledge failed away-mode switch writes and re-read the group so the switch reconciles with the real state instead of wedging the Home app
+
 ## [1.3.0] - 2026-10-15
 
 ### Added

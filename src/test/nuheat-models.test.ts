@@ -2,6 +2,10 @@ import test = require("node:test");
 import assert = require("node:assert/strict");
 
 import {
+  HEATING_MODE,
+  deriveHeatingMode,
+  fromNuHeatTemperature,
+  isStandbySetpoint,
   normalizeAccount,
   normalizeEnergyUsage,
   normalizeGroup,
@@ -109,4 +113,144 @@ test("schedule mode constants expose documented Swagger values", () => {
   assert.equal(SCHEDULE_MODE.AUTO, 1);
   assert.equal(SCHEDULE_MODE.HOLD, 2);
   assert.equal(SCHEDULE_MODE.PERMANENT_HOLD, 3);
+});
+
+test("deriveHeatingMode reports standby as off via the minimum setpoint", () => {
+  // The plugin requests standby as a manual mode at 10 C (raw 985), which is
+  // how a v2 off write reads back through the v1 API.
+  assert.equal(
+    deriveHeatingMode({
+      online: true,
+      scheduleMode: 3,
+      setPointTemp: 985,
+      operatingMode: 2,
+    }),
+    HEATING_MODE.OFF,
+  );
+
+  // A timed hold parked at the minimum setpoint is standby too.
+  assert.equal(
+    deriveHeatingMode({
+      online: true,
+      scheduleMode: 2,
+      setPointTemp: 985,
+      operatingMode: 2,
+    }),
+    HEATING_MODE.OFF,
+  );
+
+  // Away mode reads back below the standby setpoint.
+  assert.equal(
+    deriveHeatingMode({
+      online: true,
+      scheduleMode: 3,
+      setPointTemp: 850,
+      operatingMode: 2,
+    }),
+    HEATING_MODE.OFF,
+  );
+});
+
+test("deriveHeatingMode reports warm manual and hold setpoints as heat", () => {
+  assert.equal(
+    deriveHeatingMode({
+      online: true,
+      scheduleMode: 3,
+      setPointTemp: 2346,
+      operatingMode: 2,
+    }),
+    HEATING_MODE.MANUAL,
+  );
+  assert.equal(
+    deriveHeatingMode({
+      online: true,
+      scheduleMode: 2,
+      setPointTemp: 1209,
+      operatingMode: 2,
+    }),
+    HEATING_MODE.HOLD,
+  );
+});
+
+test("deriveHeatingMode treats auto schedules as auto regardless of operating mode", () => {
+  // Nuheat reports operatingMode 2 (manual) while an auto schedule runs;
+  // that is a scheduled run, not standby.
+  assert.equal(
+    deriveHeatingMode({
+      online: true,
+      scheduleMode: 1,
+      setPointTemp: 1209,
+      operatingMode: 2,
+    }),
+    HEATING_MODE.AUTO,
+  );
+  assert.equal(
+    deriveHeatingMode({
+      online: true,
+      scheduleMode: 1,
+      setPointTemp: 1209,
+      operatingMode: 1,
+    }),
+    HEATING_MODE.AUTO,
+  );
+});
+
+test("deriveHeatingMode handles unknown schedule modes and missing setpoints", () => {
+  assert.equal(
+    deriveHeatingMode({
+      online: true,
+      scheduleMode: 99,
+      setPointTemp: 985,
+      operatingMode: 2,
+    }),
+    HEATING_MODE.OFF,
+  );
+  assert.equal(
+    deriveHeatingMode({
+      online: true,
+      scheduleMode: 99,
+      setPointTemp: 1209,
+      operatingMode: 2,
+    }),
+    HEATING_MODE.MANUAL,
+  );
+  assert.equal(
+    deriveHeatingMode({
+      online: true,
+      scheduleMode: 99,
+      setPointTemp: 1209,
+      operatingMode: 1,
+    }),
+    HEATING_MODE.AUTO,
+  );
+  // A missing setpoint cannot be identified as standby.
+  assert.equal(
+    deriveHeatingMode({
+      online: true,
+      scheduleMode: 3,
+      operatingMode: 2,
+    }),
+    HEATING_MODE.MANUAL,
+  );
+});
+
+test("deriveHeatingMode reports offline thermostats as off", () => {
+  assert.equal(
+    deriveHeatingMode({
+      online: false,
+      scheduleMode: 3,
+      setPointTemp: 985,
+    }),
+    HEATING_MODE.OFF,
+  );
+});
+
+test("temperature helpers decode the Nuheat raw encoding", () => {
+  assert.equal(fromNuHeatTemperature(985), 10);
+  assert.equal(fromNuHeatTemperature(2497), 25);
+  assert.equal(isStandbySetpoint(985), true);
+  assert.equal(isStandbySetpoint(850), true);
+  assert.equal(isStandbySetpoint(1209), false);
+  assert.equal(isStandbySetpoint(undefined), false);
+  assert.equal(isStandbySetpoint(null), false);
 });
