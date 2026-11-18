@@ -21,6 +21,7 @@ class PlatformAccessoryStub extends FakeAccessory {
 function createPlatform(config: Record<string, unknown>) {
   let PlatformConstructor: any;
   const registeredAccessories: PlatformAccessoryStub[] = [];
+  const warnings: string[] = [];
   const homebridge = {
     hap: {
       Characteristic: {
@@ -52,7 +53,14 @@ function createPlatform(config: Record<string, unknown>) {
   registerPlatform(homebridge as any);
 
   const platform = new PlatformConstructor(
-    { info() {}, warn() {}, error() {}, debug() {} },
+    {
+      info() {},
+      warn(message: string) {
+        warnings.push(message);
+      },
+      error() {},
+      debug() {},
+    },
     {
       email: "user@example.com",
       password: "password",
@@ -79,8 +87,36 @@ function createPlatform(config: Record<string, unknown>) {
     setAwayMode: async () => true,
   };
 
-  return { platform, registeredAccessories };
+  return { platform, registeredAccessories, warnings };
 }
+
+test("explicit holdLength of 0 is refused with a warning instead of silently becoming 1440 via falsy coercion", async () => {
+  const { platform, warnings } = createPlatform({ holdLength: 0 });
+  assert.equal(platform.config.holdLength, 1440);
+  assert.equal(warnings.length, 1);
+  assert.ok(
+    String(warnings[0]).includes("Hold Length"),
+    "expected a warning about the ignored hold length",
+  );
+});
+
+test("holdLength values above 1440 are clamped to 1440", async () => {
+  const { platform, warnings } = createPlatform({ holdLength: 5000 });
+  assert.equal(platform.config.holdLength, 1440);
+  assert.equal(warnings.length, 0);
+});
+
+test("unset holdLength keeps the 1440 default", async () => {
+  const { platform, warnings } = createPlatform({});
+  assert.equal(platform.config.holdLength, 1440);
+  assert.equal(warnings.length, 0);
+});
+
+test("valid holdLength passes through unchanged", async () => {
+  const { platform, warnings } = createPlatform({ holdLength: 180 });
+  assert.equal(platform.config.holdLength, 180);
+  assert.equal(warnings.length, 0);
+});
 
 test("all-groups option exposes every away switch even with an allow-list", async () => {
   const { platform, registeredAccessories } = createPlatform({

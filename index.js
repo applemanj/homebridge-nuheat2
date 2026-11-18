@@ -50,7 +50,19 @@ class NuHeatPlatform {
         }
         this.config = config;
         this.config.email = this.config.Email || this.config.email;
-        this.config.holdLength = Math.min(1440, Math.max(0, this.config.holdLength || 1440));
+        if (this.config.holdLength === undefined) {
+            this.config.holdLength = 1440;
+        }
+        else if (!(this.config.holdLength > 0)) {
+            // A hold length of 0 (or less) expires immediately, which the Nuheat
+            // API treats as a permanent hold. Refuse it and fall back to the
+            // default instead of silently converting it to 1440.
+            log.warn("Ignoring Hold Length " +
+                this.config.holdLength +
+                ": it must be at least 1 minute. Using the default of 1440.");
+            this.config.holdLength = 1440;
+        }
+        this.config.holdLength = Math.min(1440, this.config.holdLength);
         this.config.refresh = Math.max(30, this.config.refresh || 60);
         this.api = api;
         this.log = new logger_1.Logger(log, this.config.debug || false);
@@ -192,7 +204,11 @@ class NuHeatPlatform {
                 entry = { uuid };
                 this.accessories.push(entry);
             }
-            entry.accessory = new NuHeatThermostat(this.log, deviceData, this.config.holdLength || 1440, getPlatformAccessory(deviceAccessory), this.NuHeatAPI, Homebridge, this.account?.temperatureScale, this.config.enableThermostatModeControl === true);
+            entry.accessory = new NuHeatThermostat(this.log, deviceData, 
+            // `holdLength` was normalized in the constructor; never re-apply a
+            // fallback here or an explicit 0 would silently become 1440 (a
+            // permanent hold).
+            this.config.holdLength, getPlatformAccessory(deviceAccessory), this.NuHeatAPI, Homebridge, this.account?.temperatureScale, this.config.enableThermostatModeControl === true);
             entry.existsInConfig = true;
             this.log.info("Loaded thermostat " +
                 deviceData.serialNumber +

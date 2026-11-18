@@ -2,7 +2,11 @@
 
 All notable changes to this project should be documented in this file
 
-## [Unreleased]
+## [1.5.0] - 2026-11-17
+
+### Fixed
+
+- Stop silently coercing an explicit Hold Length of `0` to the 1440-minute default: `0` is now refused with a logged warning (and the config UI now enforces a minimum of 1 minute), so a manual setpoint change no longer lands as a permanent Nuheat hold when a zero was configured
 
 ## [1.4.0] - 2026-10-17
 
