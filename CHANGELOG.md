@@ -2,6 +2,17 @@
 
 All notable changes to this project should be documented in this file
 
+## [1.6.0] - 2026-11-24
+
+### Added
+
+- Optional per-thermostat Away switches (`exposeAwaySwitches`, default off). On, the thermostat is held permanently at `awaySetPointTempC` (default `10`, configurable 5–30); off, the schedule resumes
+- `awaySetPointTempC` config option controlling the away setpoint temperature in Celsius
+
+### Changed
+
+- Restored an explicitly configured Hold Length of `0` as "hold until the next scheduled event" (`0` writes Nuheat's schedule mode `AUTO` with the setpoint); negative values are still refused with a warning and fall back to the default
+
 ## [1.5.0] - 2026-11-17
 
 ### Fixed

@@ -95,6 +95,20 @@
         "default": false,
         "description": "Create one switch per thermostat. The switch is on when the thermostat follows its Nuheat schedule and can be turned on to resume the schedule."
       },
+      "exposeAwaySwitches": {
+        "title": "Expose Away Switches",
+        "type": "boolean",
+        "default": false,
+        "description": "Create one switch per thermostat. Turning it on holds the thermostat at the Away Temperature below; turning it off resumes the schedule."
+      },
+      "awaySetPointTempC": {
+        "title": "Away Temperature (C)",
+        "type": "number",
+        "default": 10,
+        "minimum": 5,
+        "maximum": 30,
+        "description": "Temperature (in degrees Celsius) held when an away switch is turned on."
+      },
       "enableThermostatModeControl": {
         "title": "Enable Thermostat Mode Control (Off/Auto)",
         "type": "boolean",
@@ -105,7 +119,7 @@
         "title": "Hold Length (minutes)",
         "type": "integer",
         "default": 1440,
-        "minimum": 1,
+        "minimum": 0,
         "maximum": 1440,
         "description": "Duration for HomeKit setpoint changes. Use 0 to hold until the next scheduled event, 1-1439 for a timed hold, or 1440 for a permanent hold."
       },

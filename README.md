@@ -63,6 +63,8 @@ The equivalent JSON looks like this:
   "autoPopulateAwayModeSwitches": true,
   "groups": [{ "groupName": "Main Floor", "disabled": false }],
   "exposeScheduleSwitches": false,
+  "exposeAwaySwitches": false,
+  "awaySetPointTempC": 10,
   "enableNotifications": true,
   "enableThermostatModeControl": false,
   "holdLength": 1440,
@@ -82,6 +84,8 @@ The equivalent JSON looks like this:
 - `disabled`: Available on `devices` and `groups` rows. Keeps the row saved while preventing that thermostat or group from being exposed
 - `autoPopulateAwayModeSwitches`: Automatically expose away-mode switches for all groups on the account. Away mode is applied by Nuheat's servers; affected thermostats may be reported as being in Standby rather than Away
 - `exposeScheduleSwitches`: Optionally expose a switch per thermostat that reflects whether the thermostat is following its schedule and can be turned on to resume the schedule
+- `exposeAwaySwitches`: Optionally expose a per-thermostat away switch. On, it holds the thermostat at `awaySetPointTempC`; off, it resumes the schedule
+- `awaySetPointTempC`: Target temperature in °C used by the away switch, default `10`. The thermostat keeps heating to this floor, so HomeKit still reports it as heating
 - `groups`: Optional allow-list of groups to expose as away-mode switches. This only affects group/away-mode accessories. Blank rows in the UI are ignored
 - `groupName`: Group name as shown in MyNuheat
 - `holdLength`: Hold duration in minutes, default `1440`. Values are clamped from `0` to `1440`
@@ -102,7 +106,7 @@ Away-mode switches map directly to Nuheat's group away mode. Turning a switch on
 
 What the thermostats do while a group is in away mode is decided by Nuheat's servers, not by this plugin. Depending on the account and firmware, Nuheat may report the affected thermostats as being in **Standby** rather than showing an explicit "Away" state. Standby is Nuheat's own representation of the away setpoint; the plugin does not request standby and cannot request it, because Nuheat's thermostat update API has no operating-mode field.
 
-If you need a specific temperature held while you are away, set that temperature on the thermostat itself. The plugin will hold it for `holdLength` minutes, or permanently when `holdLength` is `1440`.
+If you need a specific temperature held while you are away, set that temperature on the thermostat itself. The plugin will hold it for `holdLength` minutes, or permanently when `holdLength` is `1440`. Alternatively, enable `exposeAwaySwitches` for a one-tap away mode that holds a fixed floor temperature.
 
 ### Thermostat Mode Control
 

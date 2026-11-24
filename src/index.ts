@@ -1,4 +1,5 @@
 import NuHeatAPI = require("./lib/NuHeatAPI");
+import NuHeatAwaySwitch = require("./lib/NuHeatAwaySwitch");
 import NuHeatGroup = require("./lib/NuHeatGroup");
 import NuHeatScheduleSwitch = require("./lib/NuHeatScheduleSwitch");
 import NuHeatThermostat = require("./lib/NuHeatThermostat");
@@ -27,6 +28,7 @@ let UUIDGen: { generate(value: string): string };
 
 const PLUGIN_NAME = "homebridge-nuheat2";
 const PLATFORM_NAME = "NuHeat";
+const DEFAULT_AWAY_SETPOINT_C = 10;
 
 function registerPlatform(homebridge: HomebridgeLike): void {
   Homebridge = homebridge;
@@ -89,14 +91,13 @@ class NuHeatPlatform {
     this.config.email = this.config.Email || this.config.email;
     if (this.config.holdLength === undefined) {
       this.config.holdLength = 1440;
-    } else if (!(this.config.holdLength > 0)) {
-      // A hold length of 0 (or less) expires immediately, which the Nuheat
-      // API treats as a permanent hold. Refuse it and fall back to the
-      // default instead of silently converting it to 1440.
+    } else if (this.config.holdLength < 0) {
+      // Negative values are invalid. Refuse them and fall back to the
+      // default rather than writing a bogus expiry to the API.
       log.warn(
         "Ignoring Hold Length " +
           this.config.holdLength +
-          ": it must be at least 1 minute. Using the default of 1440.",
+          ": it cannot be negative. Using the default of 1440.",
       );
       this.config.holdLength = 1440;
     }
@@ -339,6 +340,10 @@ class NuHeatPlatform {
         if (this.config.exposeScheduleSwitches) {
           this.setupScheduleSwitch(deviceData);
         }
+
+        if (this.config.exposeAwaySwitches) {
+          this.setupAwaySwitch(deviceData);
+        }
       }),
     );
   }
@@ -372,6 +377,43 @@ class NuHeatPlatform {
       getPlatformAccessory(deviceAccessory),
       this.NuHeatAPI,
       Homebridge,
+    );
+    entry!.existsInConfig = true;
+    if (isUpdatableAccessory(entry!.accessory)) {
+      entry!.accessory.updateValues(deviceData);
+    }
+  }
+
+  setupAwaySwitch(deviceData: AccessoryThermostat): void {
+    const uuid = UUIDGen.generate(String(deviceData.serialNumber) + "-away");
+    let entry = this.accessories.find((a) => a.uuid === uuid);
+    let deviceAccessory = entry ? entry.accessory : undefined;
+
+    if (!deviceAccessory) {
+      this.log.info("Creating away switch for thermostat", deviceData.name);
+      const accessory = new PlatformAccessory(
+        (deviceData.name || "NuHeat Thermostat") + " Away",
+        uuid,
+      );
+      accessory.addService(
+        Service.Switch,
+        (deviceData.name || "NuHeat Thermostat") + " Away",
+      );
+      this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [
+        accessory,
+      ]);
+      deviceAccessory = accessory;
+      entry = { uuid };
+      this.accessories.push(entry);
+    }
+
+    entry!.accessory = new NuHeatAwaySwitch(
+      this.log,
+      deviceData,
+      getPlatformAccessory(deviceAccessory),
+      this.NuHeatAPI,
+      Homebridge,
+      this.config.awaySetPointTempC ?? DEFAULT_AWAY_SETPOINT_C,
     );
     entry!.existsInConfig = true;
     if (isUpdatableAccessory(entry!.accessory)) {
@@ -462,6 +504,15 @@ class NuHeatPlatform {
       );
       if (isUpdatableAccessory(scheduleAccessory?.accessory)) {
         scheduleAccessory.accessory.updateValues(deviceData);
+      }
+
+      const awayAccessory = this.accessories.find(
+        (accessory) =>
+          accessory.uuid ===
+          UUIDGen.generate(String(deviceData.serialNumber) + "-away"),
+      );
+      if (isUpdatableAccessory(awayAccessory?.accessory)) {
+        awayAccessory.accessory.updateValues(deviceData);
       }
     });
 

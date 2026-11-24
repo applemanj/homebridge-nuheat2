@@ -3,7 +3,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const registerPlatform = require("../index");
+const NuHeatAwaySwitch = require("../lib/NuHeatAwaySwitch");
 const NuHeatGroup = require("../lib/NuHeatGroup");
+const NuHeatModels_1 = require("../lib/NuHeatModels");
 const helpers_1 = require("./support/helpers");
 class PlatformAccessoryStub extends helpers_1.FakeAccessory {
     UUID;
@@ -68,11 +70,16 @@ function createPlatform(config) {
     };
     return { platform, registeredAccessories, warnings };
 }
-test("explicit holdLength of 0 is refused with a warning instead of silently becoming 1440 via falsy coercion", async () => {
+test("explicit holdLength of 0 passes through as the hold-until-schedule value", async () => {
     const { platform, warnings } = createPlatform({ holdLength: 0 });
+    assert.equal(platform.config.holdLength, 0);
+    assert.equal(warnings.length, 0);
+});
+test("negative holdLength is refused with a warning", async () => {
+    const { platform, warnings } = createPlatform({ holdLength: -5 });
     assert.equal(platform.config.holdLength, 1440);
     assert.equal(warnings.length, 1);
-    assert.ok(String(warnings[0]).includes("Hold Length"), "expected a warning about the ignored hold length");
+    assert.ok(String(warnings[0]).includes("Hold Length"), "expected a warning about the refused hold length");
 });
 test("holdLength values above 1440 are clamped to 1440", async () => {
     const { platform, warnings } = createPlatform({ holdLength: 5000 });
@@ -124,4 +131,89 @@ test("failed away-mode writes acknowledge HomeKit and reconcile from the API", a
         .getService(homebridge.hap.Service.Switch)
         .getCharacteristic(Characteristic.On).value;
     assert.equal(switchValue, false);
+});
+test("away switch ON writes a permanent hold at the configured away setpoint", async () => {
+    const { accessory, homebridge, Characteristic } = (0, helpers_1.createSwitchHomebridgeStub)();
+    const writes = [];
+    const awaySwitch = new NuHeatAwaySwitch((0, helpers_1.createLogStub)(), { serialNumber: "SN1", name: "Bathroom" }, accessory, {
+        async setHeatSetpoint(_serial, setPointTemp, holdLength) {
+            writes.push({ setPointTemp, holdLength });
+            return true;
+        },
+        async resumeSchedule() {
+            return { scheduleMode: 1, setPointTemp: Number((0, NuHeatModels_1.toNuHeatTemperature)(20)) };
+        },
+        async refreshThermostat() {
+            return {
+                scheduleMode: 3,
+                setPointTemp: Number((0, NuHeatModels_1.toNuHeatTemperature)(10)),
+            };
+        },
+    }, homebridge, 10);
+    let callbackError = "unset";
+    await awaySwitch.setAwayEnabled(true, (error) => {
+        callbackError = error ?? null;
+    });
+    assert.equal(callbackError, null);
+    assert.equal(writes.length, 1);
+    assert.equal(writes[0].holdLength, 1440);
+    assert.equal(writes[0].setPointTemp, (0, NuHeatModels_1.toNuHeatTemperature)(10));
+    const switchValue = accessory
+        .getService(homebridge.hap.Service.Switch)
+        .getCharacteristic(Characteristic.On).value;
+    assert.equal(switchValue, true);
+});
+test("away switch OFF resumes the schedule", async () => {
+    const { accessory, homebridge, Characteristic } = (0, helpers_1.createSwitchHomebridgeStub)();
+    let resumeCalls = 0;
+    const awaySwitch = new NuHeatAwaySwitch((0, helpers_1.createLogStub)(), { serialNumber: "SN1", name: "Bathroom" }, accessory, {
+        async setHeatSetpoint() {
+            throw new Error("should not be called");
+        },
+        async resumeSchedule() {
+            resumeCalls += 1;
+            return { scheduleMode: 1, setPointTemp: Number((0, NuHeatModels_1.toNuHeatTemperature)(20)) };
+        },
+        async refreshThermostat() {
+            throw new Error("should not be called");
+        },
+    }, homebridge, 10);
+    let callbackError = "unset";
+    await awaySwitch.setAwayEnabled(false, (error) => {
+        callbackError = error ?? null;
+    });
+    assert.equal(callbackError, null);
+    assert.equal(resumeCalls, 1);
+    const switchValue = accessory
+        .getService(homebridge.hap.Service.Switch)
+        .getCharacteristic(Characteristic.On).value;
+    assert.equal(switchValue, false);
+});
+test("away switch reports ON only for a permanent hold at the away setpoint", async () => {
+    const { accessory, homebridge, Characteristic } = (0, helpers_1.createSwitchHomebridgeStub)();
+    const awaySwitch = new NuHeatAwaySwitch((0, helpers_1.createLogStub)(), { serialNumber: "SN1", name: "Bathroom" }, accessory, {}, homebridge, 10);
+    awaySwitch.updateValues({
+        scheduleMode: 3,
+        setPointTemp: Number((0, NuHeatModels_1.toNuHeatTemperature)(10)),
+    });
+    assert.equal(accessory
+        .getService(homebridge.hap.Service.Switch)
+        .getCharacteristic(Characteristic.On).value, true);
+    // A timed hold at the same setpoint is NOT away.
+    awaySwitch.updateValues({
+        scheduleMode: 2,
+        setPointTemp: Number((0, NuHeatModels_1.toNuHeatTemperature)(10)),
+    });
+    assert.equal(accessory
+        .getService(homebridge.hap.Service.Switch)
+        .getCharacteristic(Characteristic.On).value, false);
+    // A permanent hold at a different setpoint (e.g. user's manual change) is
+    // not the away state either.
+    awaySwitch.updateValues({
+        scheduleMode: 3,
+        setPointTemp: Number((0, NuHeatModels_1.toNuHeatTemperature)(22)),
+    });
+    assert.equal(accessory
+        .getService(homebridge.hap.Service.Switch)
+        .getCharacteristic(Characteristic.On).value, false);
 });

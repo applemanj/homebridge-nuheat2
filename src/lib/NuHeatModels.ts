@@ -29,6 +29,11 @@ export const TEMPERATURE_TYPE = {
   RELATIVE: 1,
 } as const;
 
+/** Convert a Celsius temperature to the raw Nuheat setpoint scale. */
+export function toNuHeatTemperature(temperature: number): string {
+  return (((temperature * 9) / 5 + 32 - 33) * 56 + 33).toFixed(0);
+}
+
 type Maybe<T> = T | null | undefined;
 
 export interface Account {

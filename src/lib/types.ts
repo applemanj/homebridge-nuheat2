@@ -98,6 +98,8 @@ export interface PlatformConfig {
   redirectUri?: string;
   autoPopulateAwayModeSwitches?: boolean;
   exposeScheduleSwitches?: boolean;
+  exposeAwaySwitches?: boolean;
+  awaySetPointTempC?: number;
   enableNotifications?: boolean;
   enableThermostatModeControl?: boolean;
 }
